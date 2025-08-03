@@ -12,6 +12,7 @@ in subsequent API requests.
 import json
 import jwt
 import aiohttp
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -67,6 +68,7 @@ class XrayAuthManager:
         self.base_url = base_url
         self.token: Optional[str] = None
         self.token_expiry: Optional[datetime] = None
+        self._token_lock = asyncio.Lock()  # Prevents race conditions during token refresh
     
     async def authenticate(self) -> str:
         """Authenticate with Xray API and obtain a JWT token.
@@ -154,6 +156,10 @@ class XrayAuthManager:
         refreshing it if needed. This ensures API calls always have a
         valid token without manual token management.
         
+        The method uses an async lock to prevent race conditions where
+        multiple concurrent calls could trigger multiple authentication
+        requests, which could lead to rate limiting or unnecessary API calls.
+        
         Returns:
             str: Valid JWT token ready for API use
         
@@ -163,19 +169,21 @@ class XrayAuthManager:
         Complexity: O(1) - Returns cached token or single auth request
         
         Call Flow:
-            1. Check if token exists and is not expired
-            2. If invalid/expired, call authenticate()
-            3. Return the valid token
+            1. Acquire async lock to prevent concurrent auth attempts
+            2. Check if token exists and is not expired
+            3. If invalid/expired, call authenticate()
+            4. Return the valid token
         
         Example:
             # Always use this method instead of accessing token directly
             token = await auth_manager.get_valid_token()
             headers = {"Authorization": f"Bearer {token}"}
         """
-        if self.token is None or self._is_token_expired():
-            await self.authenticate()
-        
-        return self.token
+        async with self._token_lock:
+            if self.token is None or self._is_token_expired():
+                await self.authenticate()
+            
+            return self.token
     
     def _is_token_expired(self) -> bool:
         """Check if the current token is expired or near expiry.
