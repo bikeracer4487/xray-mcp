@@ -106,3 +106,44 @@ class ValidationError(XrayMCPError):
     """
     pass
 
+
+class ConnectionError(XrayMCPError):
+    """Raised when network connection issues occur.
+    
+    This exception indicates network-level problems:
+    - Connection timeouts
+    - DNS resolution failures
+    - Network unreachable
+    - Connection refused
+    
+    Example:
+        try:
+            response = await session.post(url, ...)
+        except aiohttp.ClientConnectionError as e:
+            raise ConnectionError(f"Failed to connect to Xray API: {e}")
+    """
+    pass
+
+
+class RateLimitError(XrayMCPError):
+    """Raised when API rate limits are exceeded.
+    
+    This exception indicates:
+    - API quota exhaustion
+    - Too many requests in time window
+    - Need for backoff/retry logic
+    
+    The error should include information about:
+    - Rate limit threshold
+    - Reset time if available
+    - Retry-after duration
+    
+    Example:
+        if response.status == 429:
+            retry_after = response.headers.get('Retry-After', '60')
+            raise RateLimitError(
+                f"Rate limit exceeded. Retry after {retry_after} seconds"
+            )
+    """
+    pass
+
