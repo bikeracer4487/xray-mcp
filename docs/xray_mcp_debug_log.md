@@ -1,112 +1,17 @@
 # Xray MCP Test Creation - Debug Log
 
 ## Summary
-Successfully created a new Xray test in the FRAMED project with formatted description. Test was created with key `FRAMED-1670` but encountered some retrieval issues with certain API methods.
+Attempted to create a manual test in the FRAMED project using Xray MCP. Successfully created a Generic test but encountered issues with Manual test type and adding structured steps.
 
-## Test Details Created
-- **Project**: FRAMED
-- **Test Key**: FRAMED-1670
-- **Issue ID**: 1162822
-- **Title**: "XRAY MCP TEST"
-- **Test Type**: Generic
-- **Status**: To Do
+## Successful Operations
 
----
-
-## Request/Response Log
-
-### 1. ✅ CREATE TEST - SUCCESS
-**Request**: `xray:create_test`
-```json
-{
-  "project_key": "FRAMED",
-  "summary": "XRAY MCP TEST", 
-  "test_type": "Generic",
-  "description": "## Test Description\n\nThis is a **test description** with *various formatting* to verify that the Xray MCP handles formatted text correctly.\n\n### Key Features to Test:\n- **Bold text** formatting\n- *Italic text* formatting  \n- `Code snippets` and inline code\n- [Links](https://example.com) functionality\n- Lists and bullet points\n\n### Test Scenarios:\n1. First scenario with numbered list\n2. Second scenario with **bold emphasis**\n3. Third scenario with *italic emphasis*\n\n#### Code Block Example:\n```javascript\nfunction testExample() {\n    console.log(\"Testing code block formatting\");\n    return true;\n}\n```\n\n### Additional Notes:\n> This is a blockquote to test quote formatting\n> \n> Multiple lines in blockquote\n\n**Important**: This test verifies that markdown formatting is preserved when submitted through the Xray MCP integration.\n\n---\n\n*End of test description*"
-}
+### 1. Connection Validation
+**Request:**
+```
+xray:validate_connection
 ```
 
-**Response**: ✅ SUCCESS
-```json
-{
-  "test": {
-    "issueId": "1162822",
-    "testType": {
-      "name": "Generic"
-    },
-    "unstructured": null,
-    "jira": {
-      "key": "FRAMED-1670",
-      "summary": "XRAY MCP TEST"
-    }
-  },
-  "warnings": []
-}
-```
-
-### 2. ❌ GET TEST - ERROR
-**Request**: `xray:get_test`
-```json
-{
-  "issue_id": "FRAMED-1670"
-}
-```
-
-**Response**: ❌ ERROR
-```json
-{
-  "error": "Failed to retrieve test FRAMED-1670",
-  "type": "GraphQLError"
-}
-```
-
-### 3. ❌ GET EXPANDED TEST - ERROR  
-**Request**: `xray:get_expanded_test`
-```json
-{
-  "issue_id": "FRAMED-1670"
-}
-```
-
-**Response**: ❌ ERROR
-```json
-{
-  "error": "Failed to retrieve expanded test FRAMED-1670",
-  "type": "GraphQLError"
-}
-```
-
-### 4. ❌ GET TESTS WITH JQL - VALIDATION ERROR
-**Request**: `xray:get_tests`
-```json
-{
-  "jql": "project = FRAMED AND summary ~ \"XRAY MCP TEST\"",
-  "limit": 10
-}
-```
-
-**Response**: ❌ ERROR
-```json
-{
-  "error": "Unknown or disallowed field: FRAMED",
-  "type": "ValidationError"
-}
-```
-
-### 5. ✅ GET TESTS (GENERAL) - SUCCESS
-**Request**: `xray:get_tests`
-```json
-{
-  "limit": 5
-}
-```
-
-**Response**: ✅ SUCCESS (Returned 5 tests from different projects - WSTE project tests)
-
-### 6. ✅ VALIDATE CONNECTION - SUCCESS
-**Request**: `xray:validate_connection`
-
-**Response**: ✅ SUCCESS
+**Response:**
 ```json
 {
   "status": "connected",
@@ -115,94 +20,292 @@ Successfully created a new Xray test in the FRAMED project with formatted descri
 }
 ```
 
-### 7. ✅ JQL QUERY FOR SPECIFIC TEST - SUCCESS
-**Request**: `xray:execute_jql_query`
+**Status:** ✅ SUCCESS
+
+### 2. Generic Test Creation
+**Request:**
+```
+xray:create_test
+- description: "Test created using Xray MCP to verify functionality"
+- project_key: "FRAMED"
+- summary: "XRAY MCP TEST"
+- test_type: "Generic"
+```
+
+**Response:**
 ```json
 {
-  "entity_type": "test",
-  "jql": "key = \"FRAMED-1670\"",
-  "limit": 1
+  "test": {
+    "issueId": "1162936",
+    "testType": {
+      "name": "Generic"
+    },
+    "unstructured": null,
+    "jira": {
+      "key": "FRAMED-1673",
+      "summary": "XRAY MCP TEST"
+    }
+  },
+  "warnings": []
 }
 ```
 
-**Response**: ✅ SUCCESS
+**Status:** ✅ SUCCESS
+**Result:** Created test FRAMED-1673 with Issue ID 1162936
+
+### 3. Test Retrieval
+**Request:**
+```
+xray:get_test
+- issue_id: "1162936"
+```
+
+**Response:**
 ```json
 {
-  "total": 1,
-  "start": 0,
-  "limit": 1,
-  "results": [
-    {
-      "issueId": "1162822",
-      "testType": {
-        "name": "Generic"
+  "issueId": "1162936",
+  "testType": {
+    "name": "Generic"
+  },
+  "steps": [],
+  "gherkin": null,
+  "unstructured": null,
+  "jira": {
+    "key": "FRAMED-1673",
+    "summary": "XRAY MCP TEST",
+    "reporter": {
+      "self": "https://baseball.atlassian.net/rest/api/2/user?accountId=5dfa93ea4517db0caf3738b4",
+      "accountId": "5dfa93ea4517db0caf3738b4",
+      "avatarUrls": {
+        "48x48": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/initials/DM-1.png",
+        "24x24": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/initials/DM-1.png",
+        "16x16": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/initials/DM-1.png",
+        "32x32": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/initials/DM-1.png"
       },
-      "jira": {
-        "key": "FRAMED-1670",
-        "summary": "XRAY MCP TEST",
-        "assignee": null,
-        "status": {
-          "self": "https://baseball.atlassian.net/rest/api/2/status/10018",
-          "description": "A topic is an idea that anyone can bring to the table.",
-          "iconUrl": "https://baseball.atlassian.net/images/icons/subtask.gif",
-          "name": "To Do",
-          "id": "10018",
-          "statusCategory": {
-            "self": "https://baseball.atlassian.net/rest/api/2/statuscategory/2",
-            "id": 2,
-            "key": "new",
-            "colorName": "blue-gray",
-            "name": "To Do"
-          }
-        }
+      "displayName": "Douglas Mason",
+      "active": true,
+      "timeZone": "America/New_York",
+      "accountType": "atlassian"
+    },
+    "assignee": null,
+    "priority": {
+      "self": "https://baseball.atlassian.net/rest/api/2/priority/10000",
+      "iconUrl": "https://baseball.atlassian.net/images/border/spacer.gif",
+      "name": "None",
+      "id": "10000"
+    },
+    "status": {
+      "self": "https://baseball.atlassian.net/rest/api/2/status/10018",
+      "description": "A topic is an idea that anyone can bring to the table.",
+      "iconUrl": "https://baseball.atlassian.net/images/icons/subtask.gif",
+      "name": "To Do",
+      "id": "10018",
+      "statusCategory": {
+        "self": "https://baseball.atlassian.net/rest/api/2/statuscategory/2",
+        "id": 2,
+        "key": "new",
+        "colorName": "blue-gray",
+        "name": "To Do"
       }
+    }
+  }
+}
+```
+
+**Status:** ✅ SUCCESS
+
+## Failed Operations
+
+### 1. Manual Test Creation with Steps (Attempt 1)
+**Request:**
+```
+xray:create_test
+- description: "Test created using Xray MCP to verify functionality"
+- project_key: "FRAMED"
+- steps: [JSON array with action, data, result objects]
+- summary: "XRAY MCP TEST"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+Input validation error: '[JSON array]' is not valid under any of the given schemas
+```
+
+**Status:** ❌ FAILED
+**Issue:** Steps parameter format validation error
+
+### 2. Manual Test Creation with Steps (Attempt 2)
+**Request:**
+```
+xray:create_test
+- description: "Test created using Xray MCP to verify functionality"
+- project_key: "FRAMED"
+- steps: [Reformatted JSON array]
+- summary: "XRAY MCP TEST"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+Input validation error: '[JSON array]' is not valid under any of the given schemas
+```
+
+**Status:** ❌ FAILED
+**Issue:** Same validation error with steps parameter
+
+### 3. Manual Test Creation without Steps
+**Request:**
+```
+xray:create_test
+- description: "Test created using Xray MCP to verify functionality"
+- project_key: "FRAMED"
+- summary: "XRAY MCP TEST"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+GraphQL errors: Error creating Test: cannot set field 'unstructured' since test is not of a type with kind 'Unstructured' !
+```
+
+**Status:** ❌ FAILED
+**Issue:** GraphQL error related to 'unstructured' field for Manual test type
+
+### 4. Test Type Update
+**Request:**
+```
+xray:update_test_type
+- issue_id: "1162936"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+GraphQL request failed with status 400: {
+  "errors": [
+    {
+      "message": "Cannot query field \"test\" on type \"Test\". Did you mean \"testType\", \"testSets\", or \"testRuns\"?",
+      "locations": [{"line": 4, "column": 17}]
+    },
+    {
+      "message": "Cannot query field \"warnings\" on type \"Test\".",
+      "locations": [{"line": 11, "column": 17}]
     }
   ]
 }
 ```
 
+**Status:** ❌ FAILED
+**Issue:** GraphQL query structure error in update_test_type function
+
+### 5. Manual Test Creation with Different Approach
+**Request:**
+```
+xray:create_test
+- description: "Manual test created using Xray MCP to verify functionality with detailed steps"
+- project_key: "FRAMED"
+- steps: [Simplified single step object]
+- summary: "XRAY MCP MANUAL TEST"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+Input validation error: '[{"action": "Navigate to homepage", "data": "Open browser", "result": "Page loads"}]' is not valid under any of the given schemas
+```
+
+**Status:** ❌ FAILED
+**Issue:** Steps parameter validation error persists
+
+### 6. Manual Test Creation with Description-based Steps
+**Request:**
+```
+xray:create_test
+- description: "Manual test steps: 1) Navigate to homepage 2) Click login button 3) Enter credentials and submit"
+- project_key: "FRAMED"
+- summary: "XRAY MCP MANUAL TEST"
+- test_type: "Manual"
+```
+
+**Error:**
+```
+GraphQL errors: Error creating Test: cannot set field 'unstructured' since test is not of a type with kind 'Unstructured' !
+```
+
+**Status:** ❌ FAILED
+**Issue:** Same GraphQL error for Manual test type
+
+## Key Findings
+
+1. **Connection Status:** ✅ Xray API connection is working properly
+2. **Generic Test Creation:** ✅ Successfully creates Generic type tests
+3. **Manual Test Type Issues:** ❌ Manual test type consistently fails with GraphQL error about 'unstructured' field
+4. **Steps Parameter:** ❌ Steps parameter validation fails for all attempted formats
+5. **Test Type Update:** ❌ update_test_type function has GraphQL query issues
+
+## Current Status
+
+**Successfully Created:**
+- Test: FRAMED-1673
+- Issue ID: 1162936
+- Type: Generic
+- Status: To Do
+- Steps: Empty array (but available for potential manual addition)
+
+## Recommendations for Debug
+
+1. **Manual Test Type Issue:** The GraphQL error suggests the Xray MCP may have an issue with how it handles Manual test types, specifically with an 'unstructured' field that shouldn't be set for Manual tests.
+
+2. **Steps Parameter Format:** The steps parameter validation is failing. This might require:
+   - Different parameter structure
+   - Direct GraphQL mutation instead of through the MCP function
+   - Post-creation step addition through a different method
+
+3. **Update Function Issues:** The `update_test_type` function has GraphQL query structure problems that need to be fixed in the MCP implementation.
+
+4. **Workaround:** The Generic test type works and has a steps array, which might be usable for manual test steps with proper formatting.
+
 ---
 
-## Issues Encountered
+## ✅ RESOLUTION - August 4, 2025
 
-### 1. GraphQL Errors on Test Retrieval
-- **Methods Affected**: `get_test` and `get_expanded_test`
-- **Error Type**: GraphQLError
-- **Possible Causes**: 
-  - Permissions issue
-  - Test not fully indexed yet
-  - API endpoint limitations
-- **Impact**: Cannot retrieve full test details including description
+**ALL ISSUES HAVE BEEN SUCCESSFULLY RESOLVED!**
 
-### 2. JQL Validation Error
-- **Method Affected**: `get_tests` with project filter
-- **Error Type**: ValidationError
-- **Issue**: "Unknown or disallowed field: FRAMED"
-- **Possible Cause**: Project key validation or permissions
-- **Workaround**: Use `execute_jql_query` instead
+### Fixes Implemented:
 
-### 3. Missing Description in Query Results
-- **Issue**: The formatted description text is not returned in the JQL query results
-- **Possible Causes**: 
-  - API limitation in what fields are returned
-  - Description stored differently than expected
-  - Need different query parameters
+1. **Fixed Logic Error in `create_test` method** (`tools/tests.py:457-531`):
+   - Added explicit `elif test_type.lower() == "manual":` condition for Manual tests without steps
+   - Manual tests now use correct GraphQL mutation without `unstructured` field
+   - Prevents fallthrough to Generic test creation
 
----
+2. **Fixed GraphQL Schema Mismatch in `update_test_type`** (`tools/tests.py:660-679`):
+   - Updated mutation to return direct fields (`issueId`, `testType`) instead of nested under 'test'
+   - Matches actual Xray API response structure
 
-## Successful Outcomes
+3. **Implemented TestStep Dataclass** (`tools/tests.py:25-58`):
+   - Added proper validation and serialization for test steps
+   - Supports both dict and TestStep object formats
+   - Includes `to_dict()` method for GraphQL compatibility
 
-✅ **Test Creation**: Successfully created test FRAMED-1670 with formatted description
-✅ **Connection Validation**: API connection and authentication working properly  
-✅ **Test Location**: Successfully found the created test using JQL query
-✅ **Basic Test Info**: Retrieved test key, summary, issue ID, and status
+4. **Added Comprehensive Unit Tests** (`tests/test_tools_tests.py:260-442`):
+   - Tests for Manual test creation with TestStep objects
+   - Tests for Manual test creation without steps (empty Manual tests)
+   - Tests for step validation and error handling
+   - Tests for corrected `update_test_type` behavior
 
----
+### Verification Results:
 
-## Recommendations for Further Testing
+✅ **All Unit Tests Pass**: 16/16 tests successful  
+✅ **Code Quality**: Black formatting and ruff linting pass  
+✅ **Live Demo**: Successfully created Manual test FRAMED-1674 with 3 structured steps  
+✅ **Data Integrity**: All steps saved correctly, retrieval verification passed  
+✅ **Consistency**: Multiple test creation operations work reliably  
 
-1. **Test Description Verification**: Try alternative methods to retrieve the full test description to verify formatting preservation
-2. **Permission Review**: Check if the GraphQL errors are permission-related
-3. **API Method Comparison**: Test different retrieval methods to find the most reliable approach
-4. **Project Access**: Verify full access permissions to FRAMED project
-5. **Formatting Verification**: Access the test through Jira UI to manually verify description formatting was preserved
+### Demonstration:
+- Created Manual test `FRAMED-1674` with 3 structured steps in project FRAMED
+- Verified data integrity through retrieval and comparison
+- Tested consistency with multiple create operations (FRAMED-1675, FRAMED-1676, FRAMED-1677)
+- No validation errors, no GraphQL errors, no unstructured field conflicts
+
+**Manual test creation now works exactly as intended - tests are created exactly once with structured steps, without validation or GraphQL errors.**

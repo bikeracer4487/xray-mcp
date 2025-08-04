@@ -5,13 +5,14 @@ from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any
 
 try:
-    from tools.tests import TestTools
+    from tools.tests import TestTools, TestStep
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
 except ImportError:
     import sys
-    sys.path.append('..')
-    from tools.tests import TestTools
+
+    sys.path.append("..")
+    from tools.tests import TestTools, TestStep
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
 
@@ -33,14 +34,14 @@ def test_tools(mock_client):
 
 class TestTestTools:
     """Test suite for TestTools class."""
-    
+
     @pytest.mark.asyncio
     async def test_get_test_success(self, test_tools, mock_client):
         """Test successful test retrieval."""
         mock_client.execute_query.return_value = {
             "data": {
                 "getTest": {
-                    "issueId": "TEST-123",
+                    "issueId": "12345",
                     "testType": {"name": "Manual"},
                     "steps": [
                         {
@@ -48,42 +49,39 @@ class TestTestTools:
                             "action": "Click button",
                             "data": "Button A",
                             "result": "Page loads",
-                            "attachments": []
+                            "attachments": [],
                         }
                     ],
                     "gherkin": None,
                     "unstructured": None,
-                    "jira": {
-                        "key": "TEST-123",
-                        "summary": "Test login functionality"
-                    }
+                    "jira": {"key": "TEST-123", "summary": "Test login functionality"},
                 }
             }
         }
-        
-        result = await test_tools.get_test("TEST-123")
-        
-        assert result["issueId"] == "TEST-123"
+
+        result = await test_tools.get_test("12345")  # Use numeric ID to skip resolution
+
+        assert result["issueId"] == "12345"
         assert result["testType"]["name"] == "Manual"
         assert len(result["steps"]) == 1
         assert result["steps"][0]["action"] == "Click button"
-        
+
         # Verify query was called correctly
         mock_client.execute_query.assert_called_once()
         args = mock_client.execute_query.call_args
         assert "getTest" in args[0][0]
-        assert args[0][1] == {"issueId": "TEST-123"}
-    
+        assert args[0][1] == {"issueId": "12345"}
+
     @pytest.mark.asyncio
     async def test_get_test_not_found(self, test_tools, mock_client):
         """Test get_test when test doesn't exist."""
         mock_client.execute_query.return_value = {"data": {"getTest": None}}
-        
+
         with pytest.raises(GraphQLError) as exc_info:
-            await test_tools.get_test("NONEXISTENT-1")
-        
+            await test_tools.get_test("99999")  # Use numeric ID
+
         assert "Failed to retrieve test" in str(exc_info.value)
-    
+
     @pytest.mark.asyncio
     async def test_get_tests_with_jql(self, test_tools, mock_client):
         """Test retrieving multiple tests with JQL filter."""
@@ -98,39 +96,39 @@ class TestTestTools:
                             "issueId": "TEST-101",
                             "testType": {"name": "Manual"},
                             "steps": [],
-                            "jira": {"key": "TEST-101", "summary": "Test 1"}
+                            "jira": {"key": "TEST-101", "summary": "Test 1"},
                         },
                         {
                             "issueId": "TEST-102",
                             "testType": {"name": "Cucumber"},
                             "gherkin": "Scenario: Test",
-                            "jira": {"key": "TEST-102", "summary": "Test 2"}
-                        }
-                    ]
+                            "jira": {"key": "TEST-102", "summary": "Test 2"},
+                        },
+                    ],
                 }
             }
         }
-        
-        with patch('tools.tests.validate_jql') as mock_validate:
+
+        with patch("tools.tests.validate_jql") as mock_validate:
             mock_validate.return_value = 'project = "TEST"'
-            
+
             result = await test_tools.get_tests(jql='project = "TEST"', limit=50)
-            
+
             assert result["total"] == 2
             assert len(result["results"]) == 2
             assert result["results"][0]["testType"]["name"] == "Manual"
             assert result["results"][1]["testType"]["name"] == "Cucumber"
-            
+
             mock_validate.assert_called_once_with('project = "TEST"')
-    
+
     @pytest.mark.asyncio
     async def test_get_tests_limit_validation(self, test_tools):
         """Test that get_tests validates limit parameter."""
         with pytest.raises(ValidationError) as exc_info:
             await test_tools.get_tests(limit=101)
-        
+
         assert "Limit cannot exceed 100" in str(exc_info.value)
-    
+
     @pytest.mark.asyncio
     async def test_create_manual_test(self, test_tools, mock_client):
         """Test creating a manual test with steps."""
@@ -145,16 +143,16 @@ class TestTestTools:
                                 "id": "1",
                                 "action": "Open application",
                                 "data": "URL: /app",
-                                "result": "App loads"
+                                "result": "App loads",
                             }
                         ],
-                        "jira": {"key": "TEST-201", "summary": "New manual test"}
+                        "jira": {"key": "TEST-201", "summary": "New manual test"},
                     },
-                    "warnings": []
+                    "warnings": [],
                 }
             }
         }
-        
+
         result = await test_tools.create_test(
             project_key="TEST",
             summary="New manual test",
@@ -164,15 +162,15 @@ class TestTestTools:
                 {
                     "action": "Open application",
                     "data": "URL: /app",
-                    "result": "App loads"
+                    "result": "App loads",
                 }
-            ]
+            ],
         )
-        
+
         assert result["test"]["issueId"] == "TEST-201"
         assert result["test"]["testType"]["name"] == "Manual"
         assert len(result["test"]["steps"]) == 1
-        
+
         # Verify mutation was called
         mock_client.execute_mutation.assert_called_once()
         args = mock_client.execute_mutation.call_args
@@ -180,7 +178,7 @@ class TestTestTools:
         variables = args[0][1]
         assert variables["testType"]["name"] == "Manual"
         assert len(variables["steps"]) == 1
-    
+
     @pytest.mark.asyncio
     async def test_create_cucumber_test(self, test_tools, mock_client):
         """Test creating a Cucumber test with Gherkin."""
@@ -191,29 +189,29 @@ class TestTestTools:
                         "issueId": "TEST-202",
                         "testType": {"name": "Cucumber"},
                         "gherkin": "Scenario: Login\n  Given I am on login page",
-                        "jira": {"key": "TEST-202", "summary": "Cucumber test"}
+                        "jira": {"key": "TEST-202", "summary": "Cucumber test"},
                     },
-                    "warnings": []
+                    "warnings": [],
                 }
             }
         }
-        
+
         gherkin_scenario = """Scenario: Login
   Given I am on login page
   When I enter credentials
   Then I should be logged in"""
-        
+
         result = await test_tools.create_test(
             project_key="TEST",
             summary="Cucumber test",
             test_type="Cucumber",
-            gherkin=gherkin_scenario
+            gherkin=gherkin_scenario,
         )
-        
+
         assert result["test"]["issueId"] == "TEST-202"
         assert result["test"]["testType"]["name"] == "Cucumber"
         assert "Scenario: Login" in result["test"]["gherkin"]
-    
+
     @pytest.mark.asyncio
     async def test_create_generic_test(self, test_tools, mock_client):
         """Test creating a generic test."""
@@ -224,71 +222,232 @@ class TestTestTools:
                         "issueId": "TEST-203",
                         "testType": {"name": "Generic"},
                         "unstructured": "Free form test content",
-                        "jira": {"key": "TEST-203", "summary": "Generic test"}
+                        "jira": {"key": "TEST-203", "summary": "Generic test"},
                     },
-                    "warnings": []
+                    "warnings": [],
                 }
             }
         }
-        
+
         result = await test_tools.create_test(
             project_key="TEST",
             summary="Generic test",
             test_type="Generic",
-            unstructured="Free form test content"
+            unstructured="Free form test content",
         )
-        
+
         assert result["test"]["issueId"] == "TEST-203"
         assert result["test"]["testType"]["name"] == "Generic"
         assert result["test"]["unstructured"] == "Free form test content"
-    
+
     @pytest.mark.asyncio
     async def test_delete_test_success(self, test_tools, mock_client):
         """Test successful test deletion."""
-        mock_client.execute_mutation.return_value = {
-            "data": {"deleteTest": True}
-        }
-        
+        mock_client.execute_mutation.return_value = {"data": {"deleteTest": True}}
+
         result = await test_tools.delete_test("TEST-123")
-        
+
         assert result["success"] is True
         assert result["issueId"] == "TEST-123"
-        
+
         # Verify mutation was called
         mock_client.execute_mutation.assert_called_once()
         args = mock_client.execute_mutation.call_args
         assert "deleteTest" in args[0][0]
         assert args[0][1] == {"issueId": "TEST-123"}
-    
+
     @pytest.mark.asyncio
-    async def test_update_test_type(self, test_tools, mock_client):
-        """Test updating test type."""
+    async def test_create_manual_test_with_teststep_objects(
+        self, test_tools, mock_client
+    ):
+        """Test creating a manual test using TestStep objects."""
         mock_client.execute_mutation.return_value = {
             "data": {
-                "updateTestType": {
+                "createTest": {
                     "test": {
-                        "issueId": "TEST-123",
+                        "issueId": "TEST-204",
                         "testType": {"name": "Manual"},
-                        "jira": {"key": "TEST-123", "summary": "Updated test"}
+                        "steps": [
+                            {
+                                "id": "1",
+                                "action": "Login to application",
+                                "data": "username: admin",
+                                "result": "Successfully logged in",
+                            },
+                            {
+                                "id": "2",
+                                "action": "Navigate to dashboard",
+                                "result": "Dashboard loads correctly",
+                            },
+                        ],
+                        "jira": {"key": "TEST-204", "summary": "Login test with steps"},
                     },
-                    "warnings": ["Some content may have been lost"]
+                    "warnings": [],
                 }
             }
         }
-        
-        result = await test_tools.update_test_type("TEST-123", "Manual")
-        
+
+        # Create test with TestStep objects
+        steps = [
+            TestStep(
+                action="Login to application",
+                result="Successfully logged in",
+                data="username: admin",
+            ),
+            TestStep(
+                action="Navigate to dashboard", result="Dashboard loads correctly"
+            ),
+        ]
+
+        result = await test_tools.create_test(
+            project_key="TEST",
+            summary="Login test with steps",
+            test_type="Manual",
+            steps=steps,
+        )
+
+        assert result["test"]["issueId"] == "TEST-204"
         assert result["test"]["testType"]["name"] == "Manual"
-        assert len(result["warnings"]) == 1
-        assert "content may have been lost" in result["warnings"][0]
-    
+        assert len(result["test"]["steps"]) == 2
+
+        # Verify the mutation was called with correct step format
+        mock_client.execute_mutation.assert_called_once()
+        args = mock_client.execute_mutation.call_args
+        variables = args[0][1]
+        assert len(variables["steps"]) == 2
+        assert variables["steps"][0]["action"] == "Login to application"
+        assert variables["steps"][0]["data"] == "username: admin"
+        assert (
+            "data" not in variables["steps"][1]
+        )  # TestStep without data should omit field
+
+    @pytest.mark.asyncio
+    async def test_create_manual_test_without_steps(self, test_tools, mock_client):
+        """Test creating a manual test without steps (empty Manual test)."""
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "createTest": {
+                    "test": {
+                        "issueId": "TEST-205",
+                        "testType": {"name": "Manual"},
+                        "steps": [],
+                        "jira": {"key": "TEST-205", "summary": "Empty manual test"},
+                    },
+                    "warnings": [],
+                }
+            }
+        }
+
+        result = await test_tools.create_test(
+            project_key="TEST",
+            summary="Empty manual test",
+            test_type="Manual",
+            # No steps provided
+        )
+
+        assert result["test"]["issueId"] == "TEST-205"
+        assert result["test"]["testType"]["name"] == "Manual"
+        assert result["test"]["steps"] == []
+
+        # Verify the mutation was called without steps parameter
+        mock_client.execute_mutation.assert_called_once()
+        args = mock_client.execute_mutation.call_args
+        variables = args[0][1]
+        assert (
+            "steps" not in variables
+        )  # Should not include steps parameter for empty Manual test
+        assert variables["testType"]["name"] == "Manual"
+
+    @pytest.mark.asyncio
+    async def test_teststep_to_dict_with_data(self):
+        """Test TestStep.to_dict() method with data field."""
+        step = TestStep(
+            action="Click login button",
+            result="Login form submits",
+            data="Button ID: login-btn",
+        )
+
+        expected = {
+            "action": "Click login button",
+            "result": "Login form submits",
+            "data": "Button ID: login-btn",
+        }
+
+        assert step.to_dict() == expected
+
+    @pytest.mark.asyncio
+    async def test_teststep_to_dict_without_data(self):
+        """Test TestStep.to_dict() method without data field."""
+        step = TestStep(action="Verify page loads", result="Page loads successfully")
+
+        expected = {"action": "Verify page loads", "result": "Page loads successfully"}
+
+        assert step.to_dict() == expected
+        assert "data" not in step.to_dict()
+
+    @pytest.mark.asyncio
+    async def test_create_test_step_validation_error(self, test_tools):
+        """Test step validation error when required fields are missing."""
+        with pytest.raises(ValidationError) as exc_info:
+            await test_tools.create_test(
+                project_key="TEST",
+                summary="Invalid test",
+                test_type="Manual",
+                steps=[{"action": "Login"}],  # Missing required 'result' field
+            )
+
+        assert "must have 'action' and 'result' fields" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_create_test_invalid_step_type(self, test_tools):
+        """Test validation error for invalid step types."""
+        with pytest.raises(ValidationError) as exc_info:
+            await test_tools.create_test(
+                project_key="TEST",
+                summary="Invalid test",
+                test_type="Manual",
+                steps=["invalid_step_type"],  # Steps must be dicts or TestStep objects
+            )
+
+        assert "Steps must be either TestStep objects or dictionaries" in str(
+            exc_info.value
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_test_type(self, test_tools, mock_client):
+        """Test updating test type with corrected GraphQL response structure."""
+        # Updated mock response to match the corrected GraphQL structure
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "updateTestType": {
+                    "issueId": "TEST-123",
+                    "testType": {"name": "Manual", "kind": "Manual"},
+                }
+            }
+        }
+
+        result = await test_tools.update_test_type("TEST-123", "Manual")
+
+        # Should return the direct fields, not nested under 'test'
+        assert result["issueId"] == "TEST-123"
+        assert result["testType"]["name"] == "Manual"
+        assert result["testType"]["kind"] == "Manual"
+
+        # Verify the mutation was called correctly
+        mock_client.execute_mutation.assert_called_once()
+        args = mock_client.execute_mutation.call_args
+        assert "updateTestType" in args[0][0]
+        variables = args[0][1]
+        assert variables["issueId"] == "TEST-123"
+        assert variables["testType"]["name"] == "Manual"
+
     @pytest.mark.asyncio
     async def test_get_expanded_test(self, test_tools, mock_client):
         """Test getting expanded test with version support."""
         mock_client.execute_query.return_value = {
             "data": {
                 "getExpandedTest": {
-                    "issueId": "TEST-123",
+                    "issueId": "12345",
                     "versionId": 2,
                     "testType": {"name": "Manual"},
                     "steps": [
@@ -296,21 +455,23 @@ class TestTestTools:
                             "id": "1",
                             "action": "Step 1",
                             "parentTestIssueId": None,
-                            "calledTestIssueId": "TEST-100"
+                            "calledTestIssueId": "54321",
                         }
                     ],
                     "warnings": [],
-                    "jira": {"key": "TEST-123"}
+                    "jira": {"key": "TEST-123"},
                 }
             }
         }
-        
-        result = await test_tools.get_expanded_test("TEST-123", test_version_id=2)
-        
-        assert result["issueId"] == "TEST-123"
+
+        result = await test_tools.get_expanded_test(
+            "12345", test_version_id=2
+        )  # Use numeric ID
+
+        assert result["issueId"] == "12345"
         assert result["versionId"] == 2
-        assert result["steps"][0]["calledTestIssueId"] == "TEST-100"
-        
+        assert result["steps"][0]["calledTestIssueId"] == "54321"
+
         # Verify version parameter was passed
         args = mock_client.execute_query.call_args
         assert args[0][1]["versionId"] == 2
