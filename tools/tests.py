@@ -115,7 +115,7 @@ class TestTools:
         variables = {"issueId": issue_id}
         result = await self.client.execute_query(query, variables)
         
-        if "data" in result and "getTest" in result["data"]:
+        if "data" in result and "getTest" in result["data"] and result["data"]["getTest"] is not None:
             return result["data"]["getTest"]
         else:
             raise GraphQLError(f"Failed to retrieve test {issue_id}")
@@ -229,8 +229,8 @@ class TestTools:
             including test versioning and step relationships for modular tests.
         """
         query = """
-        query GetExpandedTest($issueId: String!, $testVersionId: Int) {
-            getExpandedTest(issueId: $issueId, testVersionId: $testVersionId) {
+        query GetExpandedTest($issueId: String!, $versionId: Int) {
+            getExpandedTest(issueId: $issueId, versionId: $versionId) {
                 issueId
                 versionId
                 testType {
@@ -258,11 +258,11 @@ class TestTools:
         
         variables = {"issueId": issue_id}
         if test_version_id is not None:
-            variables["testVersionId"] = test_version_id
+            variables["versionId"] = test_version_id
         
         result = await self.client.execute_query(query, variables)
         
-        if "data" in result and "getExpandedTest" in result["data"]:
+        if "data" in result and "getExpandedTest" in result["data"] and result["data"]["getExpandedTest"] is not None:
             return result["data"]["getExpandedTest"]
         else:
             raise GraphQLError(f"Failed to retrieve expanded test {issue_id}")
@@ -354,7 +354,7 @@ class TestTools:
         if test_type.lower() == "manual" and steps:
             # Manual test with steps
             mutation = """
-            mutation CreateTest($testType: TestTypeInput!, $steps: [StepInput!]!, $jira: JiraFieldsInput!) {
+            mutation CreateTest($testType: UpdateTestTypeInput!, $steps: [CreateStepInput!]!, $jira: JSON!) {
                 createTest(testType: $testType, steps: $steps, jira: $jira) {
                     test {
                         issueId
@@ -384,7 +384,7 @@ class TestTools:
             # Cucumber test requires Gherkin scenario text
             # Uses a different mutation that accepts gherkin parameter
             mutation = """
-            mutation CreateTest($testType: TestTypeInput!, $gherkin: String!, $jira: JiraFieldsInput!) {
+            mutation CreateTest($testType: UpdateTestTypeInput!, $gherkin: String!, $jira: JSON!) {
                 createTest(testType: $testType, gherkin: $gherkin, jira: $jira) {
                     test {
                         issueId
@@ -409,7 +409,7 @@ class TestTools:
             # Generic test or fallback for other test types
             # Uses unstructured field for free-form test content
             mutation = """
-            mutation CreateTest($testType: TestTypeInput!, $unstructured: String, $jira: JiraFieldsInput!) {
+            mutation CreateTest($testType: UpdateTestTypeInput!, $unstructured: String, $jira: JSON!) {
                 createTest(testType: $testType, unstructured: $unstructured, jira: $jira) {
                     test {
                         issueId
@@ -508,7 +508,7 @@ class TestTools:
                 print(f"Warnings: {result['warnings']}")
         """
         mutation = """
-        mutation UpdateTestType($issueId: String!, $testType: TestTypeInput!) {
+        mutation UpdateTestType($issueId: String!, $testType: UpdateTestTypeInput!) {
             updateTestType(issueId: $issueId, testType: $testType) {
                 test {
                     issueId
