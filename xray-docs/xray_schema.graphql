@@ -1,0 +1,5485 @@
+"""directive for 'graphql-cost-analysis'"""
+directive @cost(complexity: Int!, multipliers: [String!], useMultipliers: Boolean) on FIELD_DEFINITION
+
+""""""
+type ActionFolderResult {
+  """Folder updated during the operation."""
+  folder: SimpleFolderResults
+
+  """Warning generated during the operation."""
+  warnings: [String]
+}
+
+"""Added Defects Result Type"""
+type AddDefectsResult {
+  """Ids of the added Defects."""
+  addedDefects: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Add Evidence Result Type"""
+type AddEvidenceResult {
+  """Ids of the added Evidence."""
+  addedEvidence: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Add Preconditions Result type"""
+type AddPreconditionsResult {
+  """Issue ids of the added Preconditions."""
+  addedPreconditions: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Add Test Environments Result type"""
+type AddTestEnvironmentsResult {
+  """Test Environments that were associated."""
+  associatedTestEnvironments: [String]
+
+  """Test Environments that were created."""
+  createdTestEnvironments: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Add Test Executions Result type"""
+type AddTestExecutionsResult {
+  """Issue ids of the added Test Executions."""
+  addedTestExecutions: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Add Test Plans Result type"""
+type AddTestPlansResult {
+  """Issue ids of the added Test Plans."""
+  addedTestPlans: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Add Test Sets Result type"""
+type AddTestSetsResult {
+  """Issue ids of the added Test Set."""
+  addedTestSets: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Add Tests Result type"""
+type AddTestsResult {
+  """Issue Ids of the added Tests."""
+  addedTests: [String]
+
+  """Warning generated during the operation."""
+  warning: String
+}
+
+"""Step Attachment type"""
+type Attachment {
+  """Download link of the attachment."""
+  downloadLink: String
+
+  """Filename of the attachment."""
+  filename: String
+
+  """Id of the attachment."""
+  id: String
+
+  """If the file is stored in Jira."""
+  storedInJira: Boolean
+}
+
+"""Attachment Data Input"""
+input AttachmentDataInput {
+  """Id of an attachment."""
+  attachmentId: String
+
+  """Data of the attachment. Base64 format."""
+  data: String
+
+  """
+   A valid <b>AttachmentDataInput</b> must have the properties <b>filename</b>, <b>mimeType</b> and <b>data</b> defined.
+  In alternative, the <b>attachmentId</b> property can be used alone.
+  If both <b>attachmentId</b> and other properties are defined, <b>attachmentId</b> takes precedence and will be used as if it was defined alone.
+  
+  
+  Filename of the attachment.
+  """
+  filename: String
+
+  """Content Type of the attachment."""
+  mimeType: String
+}
+
+"""Attachment input"""
+input AttachmentInput {
+  """Data of the attachment. This data should be in base64."""
+  data: String
+
+  """Filename of the attachment."""
+  filename: String
+
+  """Content Type of the attachment."""
+  mimeType: String
+}
+
+"""Attachment Operations Input"""
+input AttachmentOperationsInput {
+  """Attachments to add to the Step."""
+  add: [AttachmentInput]
+
+  """Filenames of the attachments to remove from the Step."""
+  removeFilenames: [String]
+
+  """Ids of the attachments to remove from the Step."""
+  removeIds: [String]
+}
+
+"""Xray History Changes type"""
+type Changes {
+  """Change details."""
+  change: String
+
+  """Field the change refers to."""
+  field: String
+}
+
+""""""
+type CoverableIssue {
+  """Issue id of the Coverable Issue Issue."""
+  issueId: String
+
+  """
+  Extra Jira information of the Coverable issue.
+  
+  Arguments
+  fields: List of the fields to be displayed.
+  """
+  jira(fields: [String]): JSON!
+
+  """
+  Test Coverage Status of the Coverable Issue. This status can be calculated based on latest status, version or Test Plan.
+  
+  Arguments
+  environment: the environment for which to calculate the for status.
+  isFinal: whether the final statuses has precedence over non-final.
+  version: the version name for which to calculate the status for.
+  testPlan: the Test Plan issue id for which to calculate the status for.
+  """
+  status(environment: String, isFinal: Boolean, testPlan: String, version: String): CoverageStatus
+
+  """
+  List of Tests associated with the Coverable Issue issue.
+  
+  Arguments
+  issueIds: the issue ids of the Tests.
+  limit: the maximum amount of tests to be returned. The maximum is 100.
+  start: the index of the first item to return in the page of results (page offset).
+  """
+  tests(issueIds: [String], limit: Int!, start: Int): TestResults
+}
+
+"""Coverable Issue Results type"""
+type CoverableIssueResults {
+  """
+  The maximum amount of Coverable Issues to be returned. The maximum is 100.
+  """
+  limit: Int
+
+  """Test issue results."""
+  results: [CoverableIssue]
+
+  """
+  The index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+
+  """Warnings generated if you have a invalid Coverable Issue"""
+  warnings: [String]
+}
+
+""""""
+type CoverageStatus {
+  """Color of the Coverage Status"""
+  color: String
+
+  """Description of the Coverage Status"""
+  description: String
+
+  """Name of the Coverage Status"""
+  name: String
+}
+
+"""Create Precondition Response type"""
+type CreatePreconditionResult {
+  """Precondition that was created."""
+  precondition: Precondition
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Create Step input"""
+input CreateStepInput {
+  """Action of the Step."""
+  action: String
+
+  """Attachments of the Step."""
+  attachments: [AttachmentInput]
+
+  """The issue id of the test called by the step."""
+  callTestIssueId: String
+
+  """Custom Fields of the Step"""
+  customFields: [CustomStepFieldInput]
+
+  """Data of the Step."""
+  data: String
+
+  """Result of the Step."""
+  result: String
+}
+
+"""Create Test Execution Result type"""
+type CreateTestExecutionResult {
+  """Test Environments that were created."""
+  createdTestEnvironments: [String]
+
+  """Test Execution that was created."""
+  testExecution: TestExecution
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Create Test Plan Result type"""
+type CreateTestPlanResult {
+  """Test Plan that was created."""
+  testPlan: TestPlan
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Create Test Result type"""
+type CreateTestResult {
+  """Test that was created."""
+  test: Test
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Create Test Set Result type"""
+type CreateTestSetResult {
+  """Test Set that was created."""
+  testSet: TestSet
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Custom Field Input"""
+input CustomFieldInput {
+  """Id of the custom field."""
+  id: String
+
+  """Value of the custom field."""
+  value: JSON
+}
+
+"""Step CustomField type"""
+type CustomStepField {
+  """Id of the Custom Field."""
+  id: String
+
+  """Name of the Custom Field."""
+  name: String
+
+  """Value of the Custom Field."""
+  value: JSON
+}
+
+"""Step Custom Field input"""
+input CustomStepFieldInput {
+  """Id of the Custom Field."""
+  id: String
+
+  """value of the Custom Field."""
+  value: JSON
+}
+
+"""
+Dataset type
+Represents a single Dataset entity with its metadata, parameters, and associated dataset rows.
+"""
+type Dataset {
+  """The ID of the call test issue (only for test step datasets)."""
+  callTestIssueId: String
+
+  """Unique identifier of the Dataset."""
+  id: String
+
+  """Parameters of the Dataset, represented as an array of key-value pairs."""
+  parameters: [Parameter]
+
+  """The rows of the Dataset, representing combinatorial data."""
+  rows: [DatasetRow]
+
+  """The ID of the test execution issue associated with the Dataset."""
+  testExecIssueId: String
+
+  """The ID of the test issue associated with the Dataset."""
+  testIssueId: String
+
+  """The ID of the test plan issue associated with the Dataset."""
+  testPlanIssueId: String
+
+  """
+  The ID of the test step associated with the Dataset (only for test step datasets).
+  """
+  testStepId: String
+}
+
+"""
+DatasetRow type
+Represents a single row in the Dataset, containing combinatorial data.
+"""
+type DatasetRow {
+  """The values of the row, stored String array."""
+  Values: [String]
+
+  """The order of the row in the Dataset."""
+  order: Int
+}
+
+"""Evidence Type"""
+type Evidence {
+  """Evidence creation timestamp."""
+  createdOn: String
+
+  """Download link of the Evidence."""
+  downloadLink: String
+
+  """Filename of the Evidence."""
+  filename: String
+
+  """Id of the Evidence."""
+  id: String
+
+  """File size in bytes."""
+  size: Int
+
+  """If file is stored in Jira"""
+  storedInJira: Boolean
+}
+
+"""Example Type"""
+type Example {
+  """Duration of the Example."""
+  duration: Float
+
+  """Id of the Example."""
+  id: String
+
+  """Status of the Example."""
+  status: StepStatus
+}
+
+"""Expanded test step type"""
+type ExpandedStep {
+  """Action of the Step."""
+  action: String
+
+  """Attachments of the Step."""
+  attachments: [Attachment]
+
+  """The issue id of the called test with the step"""
+  calledTestIssueId: String
+
+  """Custom Fields of the Step."""
+  customFields: [CustomStepField]
+
+  """Data of the Step."""
+  data: String
+
+  """Id of the Step."""
+  id: String
+
+  """The issue id of the test calling the step"""
+  parentTestIssueId: String
+
+  """Result of the Step."""
+  result: String
+}
+
+"""Expaded test issue type"""
+type ExpandedTest {
+  """List of Coverable Issues associated with the Test issue"""
+  coverableIssues(
+    """the issue ids of the Coverable Issues"""
+    issueIds: [String]
+
+    """
+    the maximum amount of Coverable Issues to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): CoverableIssueResults
+
+  """Dataset linked to the Test issue."""
+  dataset: Dataset
+
+  """Test Repository folder of the Test."""
+  folder: Folder
+
+  """Gherkin definition of the Test issue."""
+  gherkin: String
+
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Issue id of the Test issue."""
+  issueId: String
+
+  """Extra Jira information of the Test issue."""
+  jira(
+    """
+    List of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON!
+
+  """Date when the test was last modified."""
+  lastModified: String
+
+  """List of Precondition associated with the Test issue."""
+  preconditions(
+    """the ids of the Preconditions."""
+    issueIds: [String]
+
+    """
+    the maximum amount of Preconditions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): PreconditionResults
+
+  """Project id of the Test issue."""
+  projectId: String
+
+  """
+  Gherkin type of the Test issue.
+  Possible values: 'scenario' or 'scenario_outline'.
+  """
+  scenarioType: String
+
+  """
+  Status of the Test. This status can be calculated based on latest status, version or Test Plan.
+  """
+  status(
+    """the environment for which to calculate the for status."""
+    environment: String
+
+    """whether the final statuses has precedence over non-final."""
+    isFinal: Boolean = true
+
+    """the Test Plan id for which to calculate the status for."""
+    testPlan: String
+
+    """the version name for which to calculate the status for."""
+    version: String
+  ): TestStatusType
+
+  """Expanded step definition of the test."""
+  steps: [ExpandedStep]
+
+  """List of Test Executions associated with the Test issue."""
+  testExecutions(
+    """the issue ids of the Test Executions"""
+    issueIds: [String]
+
+    """
+    the maximum amount of Test Executions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestExecutionResults
+
+  """List of Test Plans associated with the Test issue."""
+  testPlans(
+    """the issue ids of the Test Plans"""
+    issueIds: [String]
+
+    """the maximum amount of Test Plans to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestPlanResults
+
+  """List of Test Runs for the Test issue"""
+  testRuns(
+    """the maximum amount of Test Runs to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunResults
+
+  """List of Test Sets associated with the Test issue."""
+  testSets(
+    """the issue ids of the Test Sets"""
+    issueIds: [String]
+
+    """the maximum amount of Test Sets to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestSetResults
+
+  """Test type of the Test issue."""
+  testType: TestType
+
+  """List of Test versions of the Test"""
+  testVersions(
+    """if should include archived Test versions in the result."""
+    archived: Boolean = true
+
+    """
+    the maximum amount of Test versions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+
+    """to filter Test versions by Test Type"""
+    testTypeId: String
+  ): TestVersionResults
+
+  """Unstructured definition of the Test issue."""
+  unstructured: String
+
+  """Version id of the Test issue."""
+  versionId: Int
+
+  """Warnings generated while expanding the test steps."""
+  warnings: [String]
+}
+
+"""Expanded tests results type"""
+type ExpandedTestResults {
+  """The maximum amount of Tests to be returned. The maximum is 100."""
+  limit: Int
+
+  """Expanded test issue results."""
+  results: [ExpandedTest]
+
+  """
+  The index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+}
+
+"""Test Repository folder type."""
+type Folder {
+  """Folder name"""
+  name: String
+
+  """Folder path"""
+  path: String
+}
+
+""""""
+type FolderResults {
+  """Folder children"""
+  folders: JSON
+
+  """Folder issues count"""
+  issuesCount: Int
+
+  """Folder name"""
+  name: String
+
+  """Folder path"""
+  path: String
+
+  """Folder preconditions count"""
+  preconditionsCount: Int
+
+  """Folder tests count"""
+  testsCount: Int
+}
+
+"""Folder Search input"""
+input FolderSearchInput {
+  """Whether descendant folders should be included in the search."""
+  includeDescendants: Boolean
+
+  """Path of the Folder."""
+  path: String!
+
+  """Test Plan id of the Folder."""
+  testPlanId: String
+}
+
+"""Issue Link Type type"""
+type IssueLinkType {
+  """Id of Issue Link Type"""
+  id: String
+
+  """Name of Issue Link Type"""
+  name: String
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+""""""
+type Mutation {
+  """
+  Mutation used to add defects to a Test Run.
+  ===
+  The mutation below adds 2 defects to the Test Run.
+  <pre>
+  mutation {
+      <b>addDefectsToTestRun</b>( id: "5acc7ab0a3fe1b6fcdc3c737", issues: ["XRAY-1234", "12345"]) {
+          addedDefects
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addDefectsToTestRun(
+    """the id of the Test Run."""
+    id: String!
+
+    """the ids or keys of the defects to add to the Test Run."""
+    issues: [String]!
+  ): AddDefectsResult
+
+  """
+  Mutation used to add defects to a Test Run Step.
+  ===
+  The mutation below adds 2 defects to the Test Run Step.
+  <pre>
+  mutation {
+      <b>addDefectsToTestRunStep</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          issues: ["XRAY-1234", "12345"]
+      ) {
+          addedDefects
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addDefectsToTestRunStep(
+    """the ids or keys of the defects."""
+    issues: [String]
+
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): AddDefectsResult
+
+  """
+  Mutation used to add evidence to a Test Run.
+  ===
+  The mutation below adds an evidence to the Test Run.
+  <pre>
+  mutation {
+      <b>addEvidenceToTestRun</b>(
+          id: "5acc7ab0a3fe1b6fcdc3c737",
+          evidence: [
+              {
+                  filename: "evidence.txt"
+                  mimeType: "text/plain"
+                  data: "SGVsbG8gV29ybGQ="
+              }
+          ]
+      ) {
+          addedEvidence
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addEvidenceToTestRun(
+    """the evidence to add to the Test Run."""
+    evidence: [AttachmentDataInput]!
+
+    """the id of the Test Run."""
+    id: String!
+  ): AddEvidenceResult
+
+  """
+  Mutation used to add evidence to a Test Run Step.
+  ===
+  The mutation below adds an evidence to the Test Run Step.
+  <pre>
+  mutation {
+      <b>addEvidenceToTestRunStep</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          evidence: [
+              {
+                  filename: "evidence.txt"
+                  mimeType: "text/plain"
+                  data: "SGVsbG8gV29ybGQ="
+              }
+          ]
+      ) {
+          addedEvidence
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addEvidenceToTestRunStep(
+    """the evidence to add to the Test Run Step."""
+    evidence: [AttachmentDataInput]
+
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): AddEvidenceResult
+
+  """
+  Mutation used to add issues to a Folder.
+  ===
+  The mutation below will add issues to a Folder.
+  <pre>
+  mutation {
+      <b>addIssuesToFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          issueIds: ["10002","12324","12345"]
+      ) {
+          folder {
+              name
+              path
+              issuesCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addIssuesToFolder(
+    """the index of where to insert the Tests in."""
+    index: Int
+
+    """the Test or Precondition ids to add to the Folder."""
+    issueIds: [String]!
+
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String!
+  ): ActionFolderResult
+
+  """
+  Mutation used to associate Preconditions to the Test.
+  <b>Note</b>: The preconditions to be associated with the Test must be of the same Test Type of the Test.
+  ===
+  The mutation below will associate the precondition with issue id "54321" to the test "12345".
+  <pre>
+  mutation {
+      <b>addPreconditionsToTest</b>(
+          issueId: "12345",
+          preconditionIssueIds: ["54321"]
+      ) {
+          addedPreconditions
+          warning
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will associate the precondition with issue id "54321" to the version 3 of the Test "12345".
+  <pre>
+  mutation {
+      <b>addPreconditionsToTest</b>(
+          issueId: "12345",
+          versionId: 3,
+          preconditionIssueIds: ["54321"]
+      ) {
+          addedPreconditions
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addPreconditionsToTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Preconditions."""
+    preconditionIssueIds: [String]!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): AddPreconditionsResult
+
+  """
+  Mutation used to add Test Environments to the Test Execution.
+  ===
+  The mutation below will add the test Environments "android" and "ios" to the Test execution "12345".
+  <pre>
+  mutation {
+      <b>addTestEnvironmentsToTestExecution</b>(
+          issueId: "12345",
+          testEnvironments: ["android", "ios"]
+      ) {
+          associatedTestEnvironments
+          createdTestEnvironments
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestEnvironmentsToTestExecution(
+    """the issue id of the Test Execution."""
+    issueId: String!
+
+    """the test environments to add."""
+    testEnvironments: [String]!
+  ): AddTestEnvironmentsResult
+
+  """
+  Mutation used to associate Test Executions to the Test.
+  ===
+  The mutation below will associate the Test Execution with issue id "54321" to the Test "12345".
+  <pre>
+  mutation {
+      <b>addTestExecutionsToTest</b>(
+          issueId: "12345",
+          testExecIssueIds: ["54321"]
+      ) {
+          addedTestExecutions
+          warning
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will associate the Test Execution with issue id "54321" to version 3 of the Test "12345".
+  <pre>
+  mutation {
+      <b>addTestExecutionsToTest</b>(
+          issueId: "12345",
+          versionId: 3,
+          testExecIssueIds: ["54321"]
+      ) {
+          addedTestExecutions
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestExecutionsToTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Executions."""
+    testExecIssueIds: [String]!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): AddTestExecutionsResult
+
+  """
+  Mutation used to associate Test Executions to the Test Plan.
+  ===
+  The mutation below will associate the Test Execution with issue id "54321" to the test Plan "12345".
+  <pre>
+  mutation {
+      <b>addTestExecutionsToTestPlan</b>(
+          issueId: "12345",
+          testExecIssueIds: ["54321"]
+      ) {
+          addedTestExecutions
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestExecutionsToTestPlan(
+    """the issue id of the Test Plan."""
+    issueId: String!
+
+    """the issue ids of the Test Executions."""
+    testExecIssueIds: [String]!
+  ): AddTestExecutionsResult
+
+  """
+  Mutation used to associate Test Plans to the Test.
+  ===
+  The mutation below will associate the Test Plan with issue id "54321" to the test "12345".
+  <pre>
+  mutation {
+      <b>addTestPlansToTest</b>(
+          issueId: "12345",
+          testPlanIssueIds: ["54321"]
+      ) {
+          addedTestPlans
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestPlansToTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Plans."""
+    testPlanIssueIds: [String]!
+  ): AddTestPlansResult
+
+  """
+  Mutation used to associate Test Sets to the Test.
+  ===
+  The mutation below will associate the test set with issue id "54321" to the test "12345".
+  <pre>
+  mutation {
+      <b>addTestSetsToTest</b>(
+          issueId: "12345",
+          testSetIssueIds: ["54321"]
+      ) {
+          addedTestSets
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestSetsToTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Sets."""
+    testSetIssueIds: [String]!
+  ): AddTestSetsResult
+
+  """
+  Mutation used to add a Step to a Test.
+  ===
+  The mutation below will add a new Step to the test with id "12345".
+  <pre>
+  mutation {
+      <b>addTestStep</b>(
+          issueId: "12345",
+          step: {
+              action: "Use Xray Cloud Rest Api to add a new Step to the Test",
+              result: "Step was added to the Test",
+              customFields: [{id:"5ddc0e585da9670010e608dc", value:"Tokyo"}]
+          }
+      ) {
+          id
+          action
+          data
+          result
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will add a new Step to the version 3 of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>addTestStep</b>(
+          issueId: "12345",
+          versionId: 3,
+          step: {
+              action: "Use Xray Cloud Rest Api to add a new Step to the Test",
+              result: "Step was added to the Test",
+              customFields: [{id:"5ddc0e585da9670010e608dc", value:"Tokyo"}]
+          }
+      ) {
+          id
+          action
+          data
+          result
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestStep(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the Step to add to the Test."""
+    step: CreateStepInput!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): Step
+
+  """
+  Mutation used to add tests to a Folder.
+  ===
+  The mutation below will add tests to a Folder.
+  <pre>
+  mutation {
+      <b>addTestsToFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          testIssueIds: ["10002","12324","12345"]
+      ) {
+          folder {
+              name
+              path
+              testsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestsToFolder(
+    """the index of where to insert the Tests in."""
+    index: Int
+
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test ids to add to the Folder."""
+    testIssueIds: [String]!
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): ActionFolderResult
+
+  """
+  Mutation used to associate Tests to the Precondition. One of <b>testIssueIds</b> or <b>tests</b> is required.
+  <b>Note</b>: The Tests to be associated with the Precondition must be of the same Test Type of the Precondition.
+  ===
+  The mutation below will associate the Test with issue id "54321" to the Precondition "12345"
+  <pre>
+  mutation {
+      <b>addTestsToPrecondition</b>(
+          issueId: "12345",
+          testIssueIds: ["54321"]
+      ) {
+          addedTests
+          warning
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will associate the version 2 of Test "54321" and the version 3 of Test "67890" to the Precondition "12345"
+  <pre>
+  mutation {
+      <b>addTestsToPrecondition</b>(
+          issueId: "12345",
+          tests: [{ issueId: "54321", versionId: 2 }, { issueId: "67890", versionId: 3 }]
+      ) {
+          addedTests
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestsToPrecondition(
+    """the issue id of the Precondition."""
+    issueId: String!
+
+    """
+    the issue ids of the Tests. Will associate the default Test versions. Cannot be used with <b>tests</b>.
+    """
+    testIssueIds: [String]
+
+    """
+    the ids of the Test versions.  Cannot be used with <b>testIssueIds</b>.
+    """
+    tests: [TestWithVersionInput]
+  ): AddTestsResult
+
+  """
+  Mutation used to associate Tests to the Test Execution. One of <b>testIssueIds</b> or <b>tests</b> is required.
+  ===
+  The mutation below will associate the test with issue id "54321" to the Test execution "12345".
+  <pre>
+  mutation {
+      <b>addTestsToTestExecution</b>(
+          issueId: "12345",
+          testIssueIds: ["54321"]
+      ) {
+          addedTests
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestsToTestExecution(
+    """the issue id of the Test Execution."""
+    issueId: String!
+
+    """
+    the ids of the Tests. Will associate the default Test versions. Cannot be used with <b>tests</b>.
+    """
+    testIssueIds: [String]
+
+    """the ids of the Test versions. Cannot be used with <b>testIssueIds</b>."""
+    tests: [TestWithVersionInput]
+  ): AddTestsResult
+
+  """
+  Mutation used to associate Tests to the Test Plan.
+  ===
+  The mutation below will associate the test with issue id "54321" to the Test Plan "12345".
+  <pre>
+  mutation {
+      <b>addTestsToTestPlan</b>(
+          issueId: "12345",
+          testIssueIds: ["54321"]
+      ) {
+          addedTests
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestsToTestPlan(
+    """the issue id of the Test Plan."""
+    issueId: String!
+
+    """the issue ids of the Tests."""
+    testIssueIds: [String]!
+  ): AddTestsResult
+
+  """
+  Mutation used to associate Tests to the Test Set.
+  ===
+  The mutation below will associate the test with issue id "54321" to the Test Set "12345".
+  <pre>
+  mutation {
+      <b>addTestsToTestSet</b>(
+          issueId: "12345",
+          testIssueIds: ["54321"]
+      ) {
+          addedTests
+          warning
+      }
+  }
+  </pre>
+  ===
+  """
+  addTestsToTestSet(
+    """the issue id of the Test Set."""
+    issueId: String!
+
+    """the issue ids of the Tests."""
+    testIssueIds: [String]!
+  ): AddTestsResult
+
+  """
+  Mutation used to create a new Folder.
+  ===
+  The mutation below will create a new Folder.
+  <pre>
+  mutation {
+      <b>createFolder</b>(
+          projectId: "10000",
+          path: "/generic"
+      ) {
+          folder {
+              name
+              path
+              testsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will create a new Folder and add tests to it.
+  <pre>
+  mutation {
+      <b>createFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          testIssueIds: ["10002","12324","12345"]
+      ) {
+          folder {
+              name
+              path
+              testsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will create a new Folder and add tests and/or preconditions to it.
+  <pre>
+  mutation {
+      <b>createFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          issueIds: ["10002","12324","12345"]
+      ) {
+          folder {
+              name
+              path
+              testsCount
+              issuesCount
+              preconditionsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  <b>Note</b>: Use createFolder with <b>testIssueIds</b> (in which all ids must be from Tests)
+  OR with <b>issueIds</b> (which can be eiter Test ids and/or Precondition ids), but not with both.
+  ===
+  """
+  createFolder(
+    """the Test or Precondition ids to add to the Folder."""
+    issueIds: [String]
+
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test ids to add to the Folder."""
+    testIssueIds: [String]
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): ActionFolderResult
+
+  """
+  Mutation used to create a new Precondition.
+  ===
+  The mutation below will create a new Precondition.
+  <pre>
+  mutation {
+      <b>createPrecondition</b>(
+          preconditionType: { name: "Generic" }
+          definition: "Turn on calculator."
+          jira: {
+              fields: { summary:"Turn on calculator", project: {key: "CALC"} }
+          }
+      ) {
+          precondition {
+              issueId
+              preconditionType {
+                  name
+              }
+              definition
+              jira(fields: ["key"])
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  createPrecondition(
+    """the definition of the Precondition issue."""
+    definition: String
+
+    """the Test repository folder for the Precondition."""
+    folderPath: String
+
+    """
+    the jira object that will be used to create the Precondition.
+    Check [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-post) Jira endpoint for more information related with this field.
+    """
+    jira: JSON!
+
+    """the Precondition Type of the Precondition issue."""
+    preconditionType: UpdatePreconditionTypeInput
+
+    """
+    the Test issue ids to be associated with the Precondition issue. Will associate the default Test versions. Cannot be used with <b>tests</b>.
+    """
+    testIssueIds: [String]
+
+    """
+    the Test versions to be associated with the Precondition. Cannot be used with <b>testIssueIds</b>.
+    """
+    tests: [TestWithVersionInput]
+  ): CreatePreconditionResult
+
+  """
+  Mutation used to create a new Test.
+  ===
+  The mutation below will create a new Test.
+  <pre>
+  mutation {
+      <b>createTest</b>(
+          testType: { name: "Generic" },
+          unstructured: "Perform exploratory tests on calculator.",
+          jira: {
+              fields: { summary:"Exploratory Test", project: {key: "CALC"} }
+          }
+      ) {
+          test {
+              issueId
+              testType {
+                  name
+              }
+              unstructured
+              jira(fields: ["key"])
+          }
+          warnings
+      }
+  }
+  </pre>
+  === ===
+  The mutation below will create a new Test.
+  <pre>
+  mutation {
+      <b>createTest</b>(
+          testType: { name: "Manual" },
+          steps: [
+              {
+                  action: "Create first example step",
+                  result: "First step was created"
+              },
+              {
+                  action: "Create second example step with data",
+                  data: "Data for the step",
+                  result: "Second step was created with data"
+              }
+          ],
+          jira: {
+              fields: { summary:"Exploratory Test", project: {key: "CALC"} }
+          }
+      ) {
+          test {
+              issueId
+              testType {
+                  name
+              }
+              steps {
+                  action
+                  data
+                  result
+              }
+              jira(fields: ["key"])
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  createTest(
+    """the Test repository folder for the Test."""
+    folderPath: String
+
+    """the gherkin definition of the Test."""
+    gherkin: String
+
+    """
+    the Jira object that will be used to create the Test.
+    Check [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-post) Jira endpoint for more information related with this field.
+    """
+    jira: JSON!
+
+    """the Precondition ids that be associated with the Test."""
+    preconditionIssueIds: [String]
+
+    """the Step definition of the test."""
+    steps: [CreateStepInput]
+
+    """the Test Type of the Test."""
+    testType: UpdateTestTypeInput
+
+    """the unstructured definition of the Test."""
+    unstructured: String
+  ): CreateTestResult
+
+  """
+  Mutation used to create a new Test Execution.
+  ===
+  The mutation below will create a new Test Execution.
+  <pre>
+  mutation {
+      <b>createTestExecution</b>(
+          testIssueIds: ["54321"]
+          testEnvironments: ["android"]
+          jira: {
+              fields: { summary: "Test Execution for CALC-123", project: {key: "CALC"} }
+          }
+      ) {
+          testExecution {
+              issueId
+              jira(fields: ["key"])
+          }
+          warnings
+          createdTestEnvironments
+      }
+  }
+  </pre>
+  ===
+  """
+  createTestExecution(
+    """
+    the Jira object that will be used to create the Test Execution.
+    Check [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-post) Jira endpoint for more information related with this field.
+    """
+    jira: JSON!
+
+    """the test environments to be added to the Test Execution."""
+    testEnvironments: [String]
+
+    """
+    the test issue ids that will be associated with the Test Execution. Cannot be used with <b>tests</b>.
+    """
+    testIssueIds: [String]
+
+    """
+    the Test versions to be associated with the Test Execution. Cannot be used with <b>testIssueIds</b>.
+    """
+    tests: [TestWithVersionInput]
+  ): CreateTestExecutionResult
+
+  """
+  Mutation used to create a new Test Plan.
+  ===
+  The mutation below will create a new Test Plan.
+  <pre>
+  mutation {
+      <b>createTestPlan</b>(
+          testIssueIds: ["54321"]
+          jira: {
+              fields: { summary: "Test Plan for v1.0", project: {key: "CALC"} }
+          }
+      ) {
+          testPlan {
+              issueId
+              jira(fields: ["key"])
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  createTestPlan(
+    """
+    the Jira object that will be used to create the Test Plan.
+    Check [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-post) Jira endpoint for more information related with this field.
+    """
+    jira: JSON!
+
+    """
+    the saved filter id or name that will be used to configure the Test Plan. Cannot be used with <b>testIssueIds</b>.
+    """
+    savedFilter: String
+
+    """
+    the test issue ids that will be associated with the Test Plan. Cannot be used with <b>savedFilter</b>.
+    """
+    testIssueIds: [String]
+  ): CreateTestPlanResult
+
+  """
+  Mutation used to create a new Test Set.
+  ===
+  The mutation below will create a new Test Set.
+  <pre>
+  mutation {
+      <b>createTestSet</b>(
+          testIssueIds: ["54321"]
+          jira: {
+              fields: { summary: "Test Set for Generic Tests", project: {key: "CALC"} }
+          }
+      ) {
+          testSet {
+              issueId
+              jira(fields: ["key"])
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  createTestSet(
+    """
+    the Jira object that will be used to create the Test Set.
+    Check [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-post) Jira endpoint for more information related with this field.
+    """
+    jira: JSON!
+
+    """the Test ids that will be associated with the Test Set."""
+    testIssueIds: [String]
+  ): CreateTestSetResult
+
+  """
+  Mutation used to delete a Folder.
+  ===
+  The mutation below will delete a Folder.
+  <pre>
+  mutation {
+      <b>deleteFolder</b>(
+          projectId: "10000",
+          path: "/generic"
+      )
+  }
+  </pre>
+  ===
+  """
+  deleteFolder(
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): String
+
+  """
+  Mutation used to delete a Precondition
+  ===
+  The mutation below will delete the Precondition with issue id "12345"
+  <pre>
+  mutation {
+      <b>deletePrecondition</b>(issueId: "12345")
+  }
+  </pre>
+  ===
+  """
+  deletePrecondition(
+    """the issue id of the Precondition."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to delete a Test.
+  ===
+  The mutation below will delete the Test with issue id "12345".
+  <pre>
+  mutation {
+      <b>deleteTest</b>(issueId: "12345")
+  }
+  </pre>
+  ===
+  """
+  deleteTest(
+    """the issue id of the Test."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to delete a Test Execution.
+  ===
+  The mutation below will delete the Test Execution with id "12345".
+  <pre>
+  mutation {
+      <b>deleteTestExecution</b>(issueId: "12345")
+  }
+  </pre>
+  ===
+  """
+  deleteTestExecution(
+    """the issue id of the Test Execution."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to delete a Test Plan.
+  ===
+  The mutation below will delete the Test Plan with id "12345".
+  <pre>
+  mutation {
+      <b>deleteTestPlan</b>(issueId: "12345")
+  }
+  </pre>
+  ===
+  """
+  deleteTestPlan(
+    """issue id of the Test Plan."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to delete a Test Set
+  ===
+  The mutation below will delete the Test Set with issue id "12345".
+  <pre>
+  mutation {
+      <b>deleteTestSet</b>(issueId: "12345")
+  }
+  </pre>
+  ===
+  """
+  deleteTestSet(
+    """The issue id of the Test Set."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to move a Folder.
+  ===
+  The mutation below will move a Folder.
+  <pre>
+  mutation {
+      <b>moveFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          destinationPath: "/testType"
+      ) {
+          folder {
+              name
+              path
+              testsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  moveFolder(
+    """the new path of the Folder."""
+    destinationPath: String!
+
+    """the index of where to insert the folder in."""
+    index: Int
+
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): ActionFolderResult
+
+  """
+  Mutation used to remove all Steps from a Test.
+  ===
+  The mutation below removes all the Steps from test with id "12345".
+  <pre>
+  mutation {
+      <b>removeAllTestSteps</b>(
+          issueId: "12345",
+      )
+  }
+  </pre>
+  ===
+  ===
+  The mutation below removes all the Steps from the version 3 of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>removeAllTestSteps</b>(
+          issueId: "12345",
+          versionId: 3
+      )
+  }
+  </pre>
+  ===
+  """
+  removeAllTestSteps(
+    """the id of the Step."""
+    issueId: String!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): String
+
+  """
+  Mutation used to remove defects from a Test Run.
+  ===
+  The mutation below removes 2 defects from the Test Run.
+  <pre>
+  mutation {
+      <b>removeDefectsFromTestRun</b>( id: "5acc7ab0a3fe1b6fcdc3c737", issues: ["XRAY-1234", "12345"])
+  }
+  </pre>
+  ===
+  """
+  removeDefectsFromTestRun(
+    """the id of the Test Run."""
+    id: String!
+
+    """the ids or keys of the defects to remove from the Test Run."""
+    issues: [String]!
+  ): String
+
+  """
+  Mutation used to remove defects from a Test Run.
+  ===
+  The mutation below removes 2 defects from the Test Run.
+  <pre>
+  mutation {
+      <b>removeDefectsFromTestRunStep</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          issues: ["XRAY-1234", "12345"]
+      ) {
+          removedDefects
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  removeDefectsFromTestRunStep(
+    """the ids or keys of the defects."""
+    issues: [String]!
+
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): RemoveDefectsResult
+
+  """
+  Mutation used to remove evidence from a Test Run.
+  ===
+  The mutation below removes an evidence from the Test Run.
+  <pre>
+  mutation {
+      <b>removeEvidenceFromTestRun</b>(
+          id: "5acc7ab0a3fe1b6fcdc3c737",
+          evidenceFilenames: ["evidence.txt"]
+      ) {
+          removedEvidence
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  removeEvidenceFromTestRun(
+    """the filenames of the evidence to remove from the Test Run."""
+    evidenceFilenames: [String]
+
+    """the ids of the evidence to remove from the Test Run."""
+    evidenceIds: [String]
+
+    """the id of the Test Run."""
+    id: String!
+  ): RemoveEvidenceResult
+
+  """
+  Mutation used to remove evidence from a Test Run Step.
+  ===
+  The mutation below removes an evidence from the Test Run Step.
+  <pre>
+  mutation {
+      <b>removeEvidenceFromTestRunStep</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          evidenceFilenames: ["evidence.txt"]
+      ) {
+          removedEvidence
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  removeEvidenceFromTestRunStep(
+    """the filename of the evidence."""
+    evidenceFilenames: [String]
+
+    """the id of the evidence."""
+    evidenceIds: [String]
+
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): RemoveEvidenceResult
+
+  """
+  Mutation used to remove issues from Folder.
+  ===
+  The mutation below will remove issues from a Folder.
+  <pre>
+  mutation {
+      <b>removeIssuesFromFolder</b>(
+          projectId: "10000",
+          issueIds: ["10002","12324","12345"]
+      )
+  }
+  </pre>
+  ===
+  """
+  removeIssuesFromFolder(
+    """the Test or Precondition ids to remove from the Folder."""
+    issueIds: [String]!
+
+    """the project id of the Folder."""
+    projectId: String!
+  ): String
+
+  """
+  Mutation used to remove Preconditions from the Test.
+  ===
+  The mutation below will remove the preconditions with issue id "54321" and "67890" from the test "12345".
+  <pre>
+  mutation {
+      <b>removePreconditionsFromTest</b>(issueId: "12345", preconditionIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will remove the preconditions with issue id "54321" and "67890" from the version 3 of the Test "12345".
+  <pre>
+  mutation {
+      <b>removePreconditionsFromTest</b>(issueId: "12345", versionId: 3, preconditionIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removePreconditionsFromTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Preconditions."""
+    preconditionIssueIds: [String]!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): String
+
+  """
+  Mutation used to remove Test Environments from the Test Execution.
+  ===
+  The mutation below will remoive the Test Environments "android" and "ios" from the Test execution "12345".
+  <pre>
+  mutation {
+      <b>removeTestEnvironmentsFromTestExecution</b>(
+          issueId: "12345",
+          testEnvironments: ["android", "ios"]
+      )
+  }
+  </pre>
+  ===
+  """
+  removeTestEnvironmentsFromTestExecution(
+    """the issue id of the Test Execution."""
+    issueId: String!
+
+    """the test environments to remove"""
+    testEnvironments: [String]!
+  ): String
+
+  """
+  Mutation used to remove Test Executions from the Test.
+  ===
+  The mutation below will remove the Test Executions with issue id "54321" and "67890" from the Test "12345".
+  <pre>
+  mutation {
+      <b>removeTestExecutionsFromTest</b>(issueId: "12345", testExecIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestExecutionsFromTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Executions."""
+    testExecIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove Test Executions from the Test Plan.
+  ===
+  The mutation below will remove the Test executions with issue id "54321" and "67890" from the Test Plan "12345".
+  <pre>
+  mutation {
+      <b>removeTestExecutionsFromTestPlan</b>(issueId: "12345", testExecIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestExecutionsFromTestPlan(
+    """the issue id of the Test Plan."""
+    issueId: String!
+
+    """the issue ids of the Test Executions."""
+    testExecIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove Test Plans from the Test.
+  ===
+  The mutation below will remove the Test Plans with issue id "54321" and "67890" from the Test "12345".
+  <pre>
+  mutation {
+      <b>removeTestPlansFromTest</b>(issueId: "12345", testPlanIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestPlansFromTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Plans."""
+    testPlanIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove Test Sets from the Test.
+  ===
+  The mutation below will remove the Test Sets with issue id "54321" and "67890" from the test "12345".
+  <pre>
+  mutation {
+      <b>removeTestSetsFromTest</b>(issueId: "12345", testSetIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestSetsFromTest(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the issue ids of the Test Sets."""
+    testSetIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove a Step from a Test.
+  ===
+  The mutation below removes the Step with id "836d30ec-f034-4a03-879e-9c44a1d6d1fe".
+  <pre>
+  mutation {
+      <b>removeTestStep</b>(
+          stepId: "836d30ec-f034-4a03-879e-9c44a1d6d1fe",
+      )
+  }
+  </pre>
+  ===
+  """
+  removeTestStep(
+    """the id of the Step."""
+    stepId: String!
+  ): String
+
+  """
+  Mutation used to remove tests from Folder.
+  ===
+  The mutation below will remove tests from a Folder.
+  <pre>
+  mutation {
+      <b>removeTestsFromFolder</b>(
+          projectId: "10000",
+          testIssueIds: ["10002","12324","12345"]
+      )
+  }
+  </pre>
+  ===
+  """
+  removeTestsFromFolder(
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test ids to remove from the Folder."""
+    testIssueIds: [String]!
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): String
+
+  """
+  Mutation used to remove Tests from the Precondition. One of <b>testIssueIds</b> or <b>tests</b> is required.
+  ===
+  The mutation below will remove the Tests with issue id "54321" and "67890" from the Precondition "12345".
+  <pre>
+  mutation {
+      <b>removeTestsFromPrecondition</b>(issueId: "12345", testIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will remove the version 2 of Test "54321" and the version 3 of Test "67890" from the Precondition "12345".
+  <pre>
+  mutation {
+      <b>removeTestsFromPrecondition</b>(
+          issueId: "12345",
+          tests: [{ issueId: "54321", versionId: 2 }, { issueId: "67890", versionId: 3 }]
+      )
+  }
+  </pre>
+  ===
+  """
+  removeTestsFromPrecondition(
+    """the issue id of the Precondition."""
+    issueId: String!
+
+    """
+    the issue ids of the Tests. Will remove the default Test versions. Cannot be used with <b>tests</b>.
+    """
+    testIssueIds: [String]
+
+    """the ids of the Test versions. Cannot be used with <b>testIssueIds</b>."""
+    tests: [TestWithVersionInput]
+  ): String
+
+  """
+  Mutation used to remove Tests from the Test Execution.
+  ===
+  The mutation below will remove the Tests with issue id "54321" and "67890" from the Test Execution "12345".
+  <pre>
+  mutation {
+      <b>removeTestsFromTestExecution</b>(issueId: "12345", testIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestsFromTestExecution(
+    """issue id of the Test Execution."""
+    issueId: String!
+
+    """the ids of the Tests."""
+    testIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove Tests from the Test Plan.
+  ===
+  The mutation below will remove the Tests with id "54321" and "67890" from the Test Plan "12345".
+  <pre>
+  mutation {
+      <b>removeTestsFromTestPlan</b>(issueId: "12345", testIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestsFromTestPlan(
+    """the issue id of the Test Plan."""
+    issueId: String!
+
+    """the issue ids of the Tests."""
+    testIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to remove Tests from the Test Set.
+  ===
+  The mutation below will remove the Tests with issue id "54321" and "67890" from the test set "12345".
+  <pre>
+  mutation {
+      <b>removeTestsFromTestSet</b>(issueId: "12345", testIssueIds: ["54321", "67890"])
+  }
+  </pre>
+  ===
+  """
+  removeTestsFromTestSet(
+    """the issue id of the Test Set."""
+    issueId: String!
+
+    """the issue ids of the Tests."""
+    testIssueIds: [String]!
+  ): String
+
+  """
+  Mutation used to rename a Folder.
+  ===
+  The mutation below will rename a Folder.
+  <pre>
+  mutation {
+      <b>renameFolder</b>(
+          projectId: "10000",
+          path: "/generic",
+          newName: "Junit"
+      ) {
+          folder {
+              name
+              path
+              testsCount
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  renameFolder(
+    """the new name of the Folder."""
+    newName: String!
+
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): ActionFolderResult
+
+  """
+  Mutation used to reset the Test Run. This will load the new test definition and delete the current execution data.
+  ===
+  The mutation below resets the Test Run.
+  <pre>
+  mutation {
+      <b>resetTestRun</b>( id: "5acc7ab0a3fe1b6fcdc3c737")
+  }
+  </pre>
+  ===
+  """
+  resetTestRun(
+    """the id of the Test Run."""
+    id: String!
+  ): String
+
+  """
+  Mutation used to set the timer in Test Run. This will start, pause or stop the timer in Test Run.
+  ===
+  The mutation below start the timer in Test Run.
+  <pre>
+  mutation {
+      <b>setTestRunTimer</b>( 
+          testRunId: "5acc7ab0a3fe1b6fcdc3c737"
+          running: true
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  
+  The mutation below stop the timer in Test Run.
+  <pre>
+  mutation {
+      <b>setTestRunTimer</b>( 
+          testRunId: "5acc7ab0a3fe1b6fcdc3c737"
+          reset: true
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  setTestRunTimer(
+    """to stop the timer"""
+    reset: Boolean
+
+    """to start (true) or pause (false) the timer"""
+    running: Boolean
+
+    """the id of the Test Run."""
+    testRunId: String!
+  ): String
+
+  """
+  Mutation used to update the Gherkin definition of a Test.
+  ===
+  The mutation below will update the gherkin definition of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateGherkinTestDefinition</b>(issueId: "12345", gherkin: "Gherkin definition" ) {
+          issueId
+          gherkin
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will update the gherkin definition of the version 3 of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateGherkinTestDefinition</b>(issueId: "12345", versionId: 3, gherkin: "Gherkin definition" ) {
+          issueId
+          gherkin
+      }
+  }
+  </pre>
+  ===
+  """
+  updateGherkinTestDefinition(
+    """the gherkin definition of the Test."""
+    gherkin: String!
+
+    """the issue id of the Test."""
+    issueId: String!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): Test
+
+  """
+  Mutation used to update the status of a Test Run iteration.
+  ===
+  The mutation below updates the status of a Test Run iteration.
+  <pre>
+  mutation {
+      <b>updateIterationStatus</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          iterationRank: "0",
+          status: "PASSED"
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateIterationStatus(
+    """The rank of the iteration."""
+    iterationRank: String!
+
+    """the id or name of the status of the iteration."""
+    status: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): UpdateIterationStatusResult
+
+  """
+  Mutation used to update a Precondition
+  ===
+  The mutation below will update the Precondition with id "49137"
+  <pre>
+  mutation {
+      <b>updatePrecondition</b>(
+          issueId: "49137",
+          data: { preconditionType: {name: "Manual" }, definition: "Turn on calculator" }
+      ) {
+          issueId
+          preconditionType {
+              kind
+              name
+          }
+          definition
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will update the Precondition with id "12345" and move it to the specified folder
+  <pre>
+  mutation {
+      <b>updatePrecondition</b>(
+          issueId: "12345",
+          data: { folderPath: "/generic" }
+      ) {
+          issueId
+          preconditionType {
+              kind
+              name
+          }
+          definition
+      }
+  }
+  </pre>
+  ===
+  """
+  updatePrecondition(
+    """the object containing the information to update the Precondition."""
+    data: UpdatePreconditionInput
+
+    """the issue id of the Precondition."""
+    issueId: String!
+  ): Precondition
+
+  """
+  Mutation used update the precondition folder on the Test Repository.
+  ===
+  The mutation below will add the precondition to "Component/UI" folder.
+  <pre>
+  mutation {
+      <b>updatePreconditionFolder</b>(
+          issueId: "12345",
+          folderPath: "/Component/UI"
+      )
+  }
+  </pre>
+  The mutation below will move the Precondition to the root.
+  <pre>
+  mutation {
+      <b>updatePreconditionFolder</b>(
+          issueId: "12345",
+          folderPath: "/"
+      )
+  }
+  </pre>
+  ===
+  """
+  updatePreconditionFolder(
+    """the Test repository folder for the Precondition."""
+    folderPath: String!
+
+    """the issue id of the Precondition."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used update the Test folder on the Test Repository.
+  ===
+  The mutation below will add the test to "Component/UI" folder.
+  <pre>
+  mutation {
+      <b>updateTestFolder</b>(
+          issueId: "12345",
+          folderPath: "/Component/UI"
+      )
+  }
+  </pre>
+  The mutation below will move the Test to the root.
+  <pre>
+  mutation {
+      <b>updateTestFolder</b>(
+          issueId: "12345",
+          folderPath: "/"
+      )
+  }
+  </pre>
+  ===
+  """
+  updateTestFolder(
+    """the Test repository folder for the Test."""
+    folderPath: String!
+
+    """the issue id of the Test."""
+    issueId: String!
+  ): String
+
+  """
+  Mutation used to update a Test Run.
+  ===
+  The mutation below updates a Test Run.
+  <pre>
+  mutation {
+      <b>updateTestRun</b>( id: "5acc7ab0a3fe1b6fcdc3c737", comment: "Everything is OK.", startedOn: "2020-03-09T10:35:09Z", finishedOn: "2020-04-09T10:35:09Z", assigneeId: "e5983db2-90f7-4135-a96f-46907e72290e", executedById: "e5983db2-90f7-4135-a96f-46907e72290e") {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestRun(
+    """the assignee of the Test Run."""
+    assigneeId: String
+
+    """the comment of the Test Run."""
+    comment: String
+
+    """the customFields of the Test Run."""
+    customFields: [CustomFieldInput]
+
+    """the executedBy of the Test Run."""
+    executedById: String
+
+    """the finishedOn of the Test Run."""
+    finishedOn: String
+
+    """the id of the Test Run."""
+    id: String!
+
+    """the startedOn of the Test Run."""
+    startedOn: String
+  ): UpdateTestRunResult
+
+  """
+  Mutation used to update the comment of a Test Run.
+  ===
+  The mutation below updates the comment of a Test Run.
+  <pre>
+  mutation {
+      <b>updateTestRunComment</b>( id: "5acc7ab0a3fe1b6fcdc3c737", comment: "Everything is OK.")
+  }
+  </pre>
+  ===
+  """
+  updateTestRunComment(
+    """the comment of the Test Run."""
+    comment: String!
+
+    """the id of the Test Run."""
+    id: String!
+  ): String
+
+  """
+  Mutation used to update the status of a Test Run Example.
+  ===
+  The mutation below updates the status of a Test Run example.
+  <pre>
+  mutation {
+      <b>updateTestRunExampleStatus</b>(
+          exampleId: "5bbd8ab0a3fe1b6fcdc3c737",
+          status: "PASSED"
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestRunExampleStatus(
+    """the id of the Test Run Example."""
+    exampleId: String!
+
+    """the id or name of the status of the Test Run."""
+    status: String!
+  ): UpdateTestRunExampleStatusResult
+
+  """
+  Mutation used to update the status of a Test Run.
+  ===
+  The mutation below updates the status of a Test Run.
+  <pre>
+  mutation {
+      <b>updateTestRunStatus</b>( id: "5acc7ab0a3fe1b6fcdc3c737", status: "PASSED")
+  }
+  </pre>
+  ===
+  """
+  updateTestRunStatus(
+    """the id of the Test Run."""
+    id: String!
+
+    """the id or name of the status of the Test Run."""
+    status: String!
+  ): String
+
+  """
+  Mutation used to update the Test Run Step.
+  ===
+  The mutation below will change the status, update the comment and add a defect to the Test Run Step.
+  <pre>
+  mutation {
+      <b>updateTestRunStep</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          updateData: {
+              comment: "Step failed"
+              status: "FAILED"
+              defects: {
+                  add: ["12345"]
+              }
+          }
+      ) {
+          addedDefects
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestRunStep(
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+
+    """the update information."""
+    updateData: UpdateTestRunStepInput!
+  ): UpdateTestRunStepResult
+
+  """
+  Mutation used to update the comment of a Test Run Step.
+  ===
+  The mutation below updates the comment of a Test Run Step.
+  <pre>
+  mutation {
+      <b>updateTestRunStepComment</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          comment: "This step is OK."
+      )
+  }
+  </pre>
+  ===
+  """
+  updateTestRunStepComment(
+    """the comment of the Test Run Step."""
+    comment: String!
+
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): String
+
+  """
+  Mutation used to update the status of a Test Run Step.
+  ===
+  The mutation below updates the status of a Test Run Step.
+  <pre>
+  mutation {
+      <b>updateTestRunStepStatus</b>(
+          testRunId: "5e8489c05f200f3cd45bbaf0",
+          stepId: "316eb258-10bb-40c0-ae40-ab76004cc505",
+          status: "PASSED"
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestRunStepStatus(
+    """the rank of the iteration."""
+    iterationRank: String
+
+    """the id or name of the status of the Test Run."""
+    status: String!
+
+    """the id of the Test Run Step."""
+    stepId: String!
+
+    """The id of the Test Run."""
+    testRunId: String!
+  ): UpdateTestRunStepStatusResult
+
+  """
+  Mutation used to update a Step of a Test.
+  ===
+  The mutation below will update the Step with id "836d30ec-f034-4a03-879e-9c44a1d6d1fe".
+  <pre>
+  mutation {
+      <b>updateTestStep</b>(
+          stepId: "836d30ec-f034-4a03-879e-9c44a1d6d1fe",
+          step: {
+              result: "Xray Cloud Rest Api works as expected",
+              customFields: [{id:"5ddc0e585da9670010e608dc", value:"Lisbon"}]
+          }
+      ) {
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestStep(
+    """the information to update on the Step."""
+    step: UpdateStepInput!
+
+    """the id of the Step."""
+    stepId: String!
+  ): UpdateTestStepResult
+
+  """
+  Mutation used to update the Test Type of a Test.
+  ===
+  The mutation below will update the Test Type of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateTestType</b>(issueId: "12345", testType: {name: "Manual"} ) {
+          issueId
+          testType {
+              name
+              kind
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will update the Test Type of the version 3 of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateTestType</b>(issueId: "12345", versionId: 3, testType: {name: "Manual"} ) {
+          issueId
+          testType {
+              name
+              kind
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  updateTestType(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the Test Type to update on the Test."""
+    testType: UpdateTestTypeInput!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): Test
+
+  """
+  Mutation used to update the Unstructured definition of a Test.
+  ===
+  The mutation below will update the unstructured definition of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateUnstructuredTestDefinition</b>(issueId: "12345", unstructured: "Generic definition" ) {
+          issueId
+          unstructured
+      }
+  }
+  </pre>
+  ===
+  ===
+  The mutation below will update the unstructured definition of the version 3 of the Test with id "12345".
+  <pre>
+  mutation {
+      <b>updateUnstructuredTestDefinition</b>(issueId: "12345", versionId: 3, unstructured: "Generic definition" ) {
+          issueId
+          unstructured
+      }
+  }
+  </pre>
+  ===
+  """
+  updateUnstructuredTestDefinition(
+    """the issue id of the Test."""
+    issueId: String!
+
+    """the unstructured definition of the Test."""
+    unstructured: String!
+
+    """
+    the id of a Test version. If not given, will update the default Test version.
+    """
+    versionId: Int
+  ): Test
+}
+
+"""
+Parameter type
+Represents a single parameter in the Dataset.
+"""
+type Parameter {
+  """Indicates whether the parameter supports combinations."""
+  combinations: Boolean
+
+  """The list of values for the parameter."""
+  listValues: [String]
+
+  """The name of the parameter."""
+  name: String
+
+  """The ID of the project list associated with the parameter."""
+  projectListId: String
+
+  """The type of the parameter."""
+  type: String
+}
+
+"""Precondition issue type"""
+type Precondition {
+  """Definition of the Precondition issue."""
+  definition: String
+
+  """Test Repository folder of the Precondition."""
+  folder: Folder
+
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Id of the Precondition issue."""
+  issueId: String
+
+  """Extra Jira information of the Precondition Issue."""
+  jira(
+    """
+    list of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON
+
+  """Date when the precondition was last modified."""
+  lastModified: String
+
+  """Precondition Type of the Precondition issue."""
+  preconditionType: TestType
+
+  """Project id of the Precondition issue."""
+  projectId: String
+
+  """List of the Test versions associated with the Precondition issue."""
+  testVersions(
+    """if should include archived Test versions in the result."""
+    archived: Boolean = true
+
+    """
+    the maximum amount of Test versions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+
+    """to filter Test versions by Test Type"""
+    testTypeId: String
+  ): TestVersionResults
+
+  """List of the Tests associated with the Precondition issue."""
+  tests(
+    """the issue ids of the Tests."""
+    issueIds: [String]
+
+    """the maximum amount of Tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestResults
+}
+
+"""Folder Search input"""
+input PreconditionFolderSearchInput {
+  """Whether descendant folders should be included in the search."""
+  includeDescendants: Boolean
+
+  """Path of the Folder."""
+  path: String!
+}
+
+"""Precondition Results type"""
+type PreconditionResults {
+  """Maximum amount of Preconditions to be returned. The maximum is 100."""
+  limit: Int
+
+  """Precondition issue results."""
+  results: [Precondition]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+}
+
+"""Project Settings type"""
+type ProjectSettings {
+  """Defect Issue Types."""
+  defectIssueTypes: [String]
+
+  """Project id."""
+  projectId: String
+
+  """Test Coverage Settings."""
+  testCoverageSettings: ProjectSettingsTestCoverage
+
+  """Test Environments."""
+  testEnvironments: [String]
+
+  """Test Run Custom Fields Settings."""
+  testRunCustomFieldSettings: ProjectSettingsTestRunCustomFields
+
+  """Test Step Settings."""
+  testStepSettings: ProjectSettingsTestStepSettings
+
+  """Test Type Settings."""
+  testTypeSettings: ProjectSettingsTestType
+}
+
+"""Project Test Coverage Settings type"""
+type ProjectSettingsTestCoverage {
+  """Coverable issue type ids"""
+  coverableIssueTypeIds: [String]
+
+  """Epic - Issues(Stories) relation"""
+  epicIssuesRelation: Boolean
+
+  """Issue Link Type Direction"""
+  issueLinkTypeDirection: String
+
+  """Issue Link Type Id"""
+  issueLinkTypeId: String
+
+  """Issue - Sub-tasks relation"""
+  issueSubTasksRelation: Boolean
+}
+
+"""Project Test Run Custom Field Settings type"""
+type ProjectSettingsTestRunCustomField {
+  """Id"""
+  id: String
+
+  """Name"""
+  name: String
+
+  """Is the field required"""
+  required: Boolean
+
+  """Type"""
+  type: String
+
+  """Values"""
+  values: [String]
+}
+
+"""Project Test Run Custom Field Field Settings type"""
+type ProjectSettingsTestRunCustomFields {
+  """Fields"""
+  fields: [ProjectSettingsTestRunCustomField]
+}
+
+"""Project Test Step Field Settings type"""
+type ProjectSettingsTestStepField {
+  """Is the field disabled"""
+  disabled: Boolean
+
+  """Id"""
+  id: String
+
+  """Name"""
+  name: String
+
+  """Is the field required"""
+  required: Boolean
+
+  """Type"""
+  type: String
+
+  """Values"""
+  values: [String]
+}
+
+"""Project Test Step Settings type"""
+type ProjectSettingsTestStepSettings {
+  """Fields"""
+  fields: [ProjectSettingsTestStepField]
+}
+
+"""Project Test Type Settings type"""
+type ProjectSettingsTestType {
+  """Default Test Type Id"""
+  defaultTestTypeId: String
+
+  """Test Types"""
+  testTypes: [TestType]
+}
+
+""""""
+type Query {
+  """
+  Returns a Coverable Issue by issueId.
+  ===
+  The query below returns a Coverable Issue.
+  <pre>
+  {
+      <b>getCoverableIssue</b> {
+          issueId
+          jira(fields: ["assignee", "reporter"])
+          status {
+              name
+              description
+              color
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns the Coverable Issue with issue id **12345**.
+  <pre>
+  {
+      <b>getCoverableIssue</b>(issueId: "12345") {
+          issueId
+      }
+  }
+  </pre>
+  ===
+  """
+  getCoverableIssue(
+    """the id of the Coverable Issue to be returned."""
+    issueId: String!
+  ): CoverableIssue
+
+  """
+  Returns multiple coverable issues by jql or issue ids.
+  ===
+  The query below returns 10 coverable issues that match the provided jql.
+  <pre>
+  {
+      <b>getCoverableIssues</b>(limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              jira(fields: ["assignee", "reporter"])
+              status {
+                  name
+                  description
+                  color
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getCoverableIssues(
+    """the ids of the Coverable Issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """the maximum amount of Tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): CoverableIssueResults
+
+  """
+  Returns a Dataset by its testIssueId.
+  ===
+  The Query below returns a Dataset.
+  <pre>
+  {
+      <b>getDataset</b>(testIssueId: "12345") {
+          id
+          parameters {
+              name
+              type
+              listValues
+          }
+          rows { 
+            order 
+            Values
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getDataset(
+    """(Optional) The unique identifier of the Test Call."""
+    callTestIssueId: String
+
+    """(Optional) The unique identifier of the Test Execution."""
+    testExecIssueId: String
+
+    """The unique identifier of the Dataset to be returned."""
+    testIssueId: String!
+
+    """(Optional) The unique identifier of the Test Plan."""
+    testPlanIssueId: String
+  ): Dataset
+
+  """
+  Returns multiple Datasets based on optional filters.
+  ===
+  The Query below demonstrates how to retrieve multiple Datasets, including their metadata, parameters
+  <pre>
+  {
+      <b>getDatasets</b>(
+          testIssueIds: ["30000", "40000"],
+      ) 
+        {
+          id
+          testIssueId  
+          testExecIssueId
+          testPlanIssueId
+          parameters {
+              name
+              type
+              listValues
+          }
+          rows {
+            order
+            Values
+          }
+        }
+  }
+  </pre>
+  ===
+  """
+  getDatasets(
+    """(Optional) Filter by Test ExecutionIds."""
+    testExecIssueIds: [String]
+
+    """Filter by test issue IDs."""
+    testIssueIds: [String]
+
+    """(Optional) Filter by Test PlanIds."""
+    testPlanIssueIds: [String]
+  ): [Dataset]
+
+  """
+  Returns a test (with the call test steps expanded) by issue id and version id.
+  ===
+  The query below returns the test version 2 of the test with the id "12345".
+  <pre>
+  {
+      <b>getExpandedTest</b>(issueId: "12345", testVersionId: "2") {
+          issueId
+          testType {
+              name
+              kind
+          }
+          steps {
+              parentTestIssueId
+              calledTestIssueId
+              id
+              data
+              action
+              result
+              attachments {
+                  id
+                  filename
+              }
+          }
+          warnings
+      }
+  }
+  </pre>
+  ===
+  """
+  getExpandedTest(
+    """the id of the test issue to be returned."""
+    issueId: String!
+
+    """
+    the id of a Test version. If not given, will get the default Test version.
+    """
+    versionId: Int
+  ): ExpandedTest
+
+  """
+  Returns multiple tests (with the call test steps expanded) by jql, issue ids, project id or test type.
+  ===
+  The query below returns the first 100 tests.
+  <pre>
+  {
+      <b>getExpandedTests</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              testType {
+                  name
+                  kind
+              }
+              jira(fields: ["assignee", "reporter"])
+              warnings
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns 10 tests that match the provided jql.
+  <pre>
+  {
+      <b>getExpandedTests</b>(jql: "project = 'PC'", limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              testType {
+                  name
+                  kind
+              }
+              steps {
+                  parentTestIssueId
+                  calledTestIssueId
+                  id
+                  data
+                  action
+                  result
+                  attachments {
+                      id
+                      filename
+                  }
+                  customfields {
+                      id
+                      value
+                  }
+              }
+              jira(fields: ["assignee", "reporter"])
+              warnings
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  ===
+  The query below returns the tests of each test version.
+  <pre>
+  {
+      <b>getExpandedTests</b>(tests:[{ issueId:"12345", testVersionId: "1" }, { issueId:"54321", testVersionId: "2" }]) {
+          total
+          start
+          limit
+          results {
+              issueId
+              testType {
+                  name
+                  kind
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getExpandedTests(
+    """
+    the folder information required to filter the Test issues to be returned.
+    """
+    folder: FolderSearchInput
+
+    """
+    the ids of the Test issues with default Test versions to be returned. Cannot be used with <b>tests</b>.
+    """
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """the maximum amount of Tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """all tests modified after this date will be returned"""
+    modifiedSince: String
+
+    """the id of the project of the Test issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+
+    """the Test Type of the Test issues to be returned."""
+    testType: TestTypeInput
+
+    """
+    the ids of the Test versions and Tests. If not given Test Version, will get the default Test version. Cannot be used with <b>issueIds</b>.
+    """
+    tests: [TestWithVersionInput]
+  ): ExpandedTestResults
+
+  """
+  Returns the folder for the given projectId with the specified Path along with its child folders.
+  ===
+  The query below returns the root folder and all its child folders.
+  <pre>
+  {
+      <b>getFolder</b>(projectId: "10000", path: "/") {
+          name
+          path
+          testsCount
+          folders
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns the folder with path "/generic" and all its child folders.
+  <pre>
+  {
+      <b>getFolder</b>(projectId: "10000", path: "/generic") {
+          name
+          path
+          testsCount
+          folders
+      }
+  }
+  </pre>
+  ===
+  """
+  getFolder(
+    """the path of the Folder."""
+    path: String!
+
+    """the project id of the Folder."""
+    projectId: String
+
+    """the Test Plan id of the Folder."""
+    testPlanId: String
+  ): FolderResults
+
+  """
+  Returns the Issue Link Types
+  ===
+  The Query below returns all Issue Link Types
+  <pre>
+  {
+      <b>getIssueLinkTypes</b> {
+          issueLinks {
+              id
+              name
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getIssueLinkTypes: [IssueLinkType]
+
+  """
+  Returns a Precondition by issue id.
+  ===
+  The Query below returns a Precondition.
+  <pre>
+  {
+      <b>getPrecondition</b> {
+          issueId
+          preconditionType {
+              kind
+              name
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns the Precondition with issue id **12345**
+  <pre>
+  {
+      <b>getPrecondition</b>(issueId: "12345") {
+          issueId
+          definition
+          jira(fields: ["assignee", "reporter"])
+      }
+  }
+  </pre>
+  ===
+  """
+  getPrecondition(
+    """the issue id of the Precondition to be returned."""
+    issueId: String
+  ): Precondition
+
+  """
+  Returns multiple Preconditions by jql, issueIds, projectId or Precondition Type.
+  ===
+  The Query below returns the first 100 Preconditions.
+  <pre>
+  {
+      <b>getPreconditions</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              preconditionType {
+                  name
+                  kind
+              }
+              definition
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns 10 Preconditions that match the provided jql
+  <pre>
+  {
+      <b>getPreconditions</b>(jql: "project = 'PC'", limit: 10) {
+          results {
+              issueId
+              preconditionType {
+                  name
+                  kind
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  """
+  getPreconditions(
+    """
+    the folder information required to filter the Test issues to be returned.
+    """
+    folder: PreconditionFolderSearchInput
+
+    """the ids of the Precondition issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """
+    the maximum amount of Preconditions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """all Preconditions modified after this date will be returned"""
+    modifiedSince: String
+
+    """the Precondition Type of the Precondition issues to be returned."""
+    preconditionType: TestTypeInput
+
+    """the id of the project of the Precondition issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): PreconditionResults
+
+  """
+  Returns the Project Settings of a Project.
+  ===
+  The Query below returns multiple Status
+  <pre>
+  {
+      <b>getProjectSettings</b> ( projectIdOrKey: "10000" ) {
+          projectId,
+          testEnvironments,
+          testCoverageSettings {
+              coverableIssueTypeIds
+              epicIssuesRelation
+              issueSubTasksRelation
+              issueLinkTypeId
+              issueLinkTypeDirection
+          }
+          defectIssueTypes
+          testTypeSettings {
+              testTypes {
+                  id
+                  name
+                  kind
+              }
+              defaultTestTypeId
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getProjectSettings(
+    """Project Id"""
+    projectIdOrKey: String
+  ): ProjectSettings
+
+  """
+  Returns a Status by Test Run Status name.
+  ===
+  The Query below returns a Status
+  <pre>
+  {
+      <b>getStatus</b>( name: "PASSED") {
+          name
+          description
+          final
+          color
+      }
+  }
+  </pre>
+  ===
+  """
+  getStatus(
+    """the status name of Test Run Status"""
+    name: String
+  ): Status
+
+  """
+  Returns all Test Run Status.
+  ===
+  The Query below returns multiple Status
+  <pre>
+  {
+      <b>getStatuses</b> {
+          name
+          description
+          final
+          color
+      }
+  }
+  </pre>
+  ===
+  """
+  getStatuses(
+    """
+    the project id to get statuses for. If not provided, returns global statuses
+    """
+    projectId: String
+  ): [Status]
+
+  """
+  Returns a Status by Test Run Step Status name.
+  ===
+  The Query below returns a Status
+  <pre>
+  {
+      <b>getStepStatus</b>( name: "PASSED") {
+          name
+          description
+          color
+      }
+  }
+  </pre>
+  ===
+  """
+  getStepStatus(
+    """the status name of test run step status"""
+    name: String
+  ): StepStatus
+
+  """
+  Returns all Test Run Step Status.
+  ===
+  The Query below returns multiple Status
+  <pre>
+  {
+      <b>getStepStatuses</b> {
+          name
+          description
+          color
+      }
+  }
+  </pre>
+  ===
+  """
+  getStepStatuses(
+    """
+    the project id to get step statuses for. If not provided, returns global step statuses
+    """
+    projectId: String
+  ): [StepStatus]
+
+  """
+  Returns a Test by issueId.
+  ===
+  The query below returns a Test.
+  <pre>
+  {
+      <b>getTest</b> {
+          issueId
+          gherkin
+          jira(fields: ["assignee", "reporter"])
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns the Test with issue id **12345**.
+  <pre>
+  {
+      <b>getTest</b>(issueId: "12345") {
+          issueId
+          testType {
+              name
+              kind
+          }
+          steps {
+              id
+              data
+              action
+              result
+              attachments {
+                  id
+                  filename
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTest(
+    """the id of the Test issue to be returned."""
+    issueId: String
+  ): Test
+
+  """
+  Returns a Test Execution by issue id.
+  ===
+  The Query below returns a Test Execution.
+  <pre>
+  {
+      <b>getTestExecution</b> {
+          issueId
+          projectId
+          jira(fields: ["assignee", "reporter"])
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns the Test Execution with issue id **12345**.
+  <pre>
+  {
+      <b>getTestExecution</b>(issueId: "12345") {
+          issueId
+          tests(limit: 100) {
+              total
+              start
+              limit
+              results {
+                  issueId
+                  testType {
+                      name
+                  }
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestExecution(
+    """the id of the Test Execution issue to be returned."""
+    issueId: String
+  ): TestExecution
+
+  """
+  Returns multiple Test Executions by jql, issue ids or project id.
+  ===
+  The Query below returns the first 100 Test Executions
+  <pre>
+  {
+      <b>getTestExecutions</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns 10 Test Executions that match the provided jql.
+  <pre>
+  {
+      <b>getTestExecutions</b>(jql: "project = 'PC'", limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              tests(limit: 10) {
+                  total
+                  start
+                  limit
+                  results {
+                      issueId
+                      testType {
+                          name
+                      }
+                  }
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  """
+  getTestExecutions(
+    """the ids of the Test Executions issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """
+    the maximum amount of Test Executions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """all Test Executions modified after this date will be returned"""
+    modifiedSince: String
+
+    """the id of the project of the Test Execution issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): TestExecutionResults
+
+  """
+  Returns a Test Plan by issue id.
+  ===
+  The Query below returns a Test Plan.
+  <pre>
+  {
+      <b>getTestPlan</b> {
+          issueId
+          projectId
+          jira(fields: ["assignee", "reporter"])
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns the Test Plan with issue id **12345**
+  <pre>
+  {
+      <b>getTestPlan</b>(issueId: "12345") {
+          issueId
+          tests(limit: 100) {
+              results {
+                  issueId
+                  testType {
+                      name
+                  }
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestPlan(
+    """the issue id of the Test Plan issue to be returned."""
+    issueId: String
+  ): TestPlan
+
+  """
+  Returns multiple Test Plans by jql, issue ids or project id.
+  ===
+  The Query below returns the first 100 Test Plans
+  <pre>
+  {
+      <b>getTestPlans</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The Query below returns 10 Test Plans that match the provided jql.
+  <pre>
+  {
+      <b>getTestPlans</b>(jql: "project = 'PC'", limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              tests(limit: 10) {
+                  total
+                  start
+                  limit
+                  results {
+                      issueId
+                      testType {
+                          name
+                      }
+                  }
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  """
+  getTestPlans(
+    """the ids of the Test Plan issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """the maximum amount of Test Plans to be returned. The maximum is 100."""
+    limit: Int!
+
+    """all Test Plans modified after this date will be returned"""
+    modifiedSince: String
+
+    """the id of the project of the Test Plan issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): TestPlanResults
+
+  """
+  Returns a Test Run by Test issue id and Test Execution issue id.
+  ===
+  The Query below returns a Test Run
+  <pre>
+  {
+      <b>getTestRun</b>( testIssueId: "11165", testExecIssueId: "11164") {
+          id
+          status {
+              name
+              color
+              description
+          }
+          gherkin
+          examples {
+              id
+              status {
+                  name
+                  color
+                  description
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestRun(
+    """the issue id of the Test Execution of the Test Run."""
+    testExecIssueId: String
+
+    """the issue id of the Test of the Test Run."""
+    testIssueId: String
+  ): TestRun
+
+  """
+  Returns a Test Run by id.
+  ===
+  The Query below returns a Test Run.
+  <pre>
+  {
+      <b>getTestRunById</b>( id: "5acc7ab0a3fe1b6fcdc3c737") {
+          id
+          status {
+              name
+              color
+              description
+          }
+          steps {
+              action
+              data
+              result
+              attachments {
+                  id
+                  filename
+              }
+              status {
+                  name
+                  color
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestRunById(
+    """the id of the Test Run."""
+    id: String
+  ): TestRun
+
+  """
+  Returns multiple Test Runs testIssueIds and/or testExecIssueIds.
+  ===
+  The query below returns the first 100 Test Runs that match the given testIssueIds and testExecIssueIds.
+  <pre>
+  {
+      <b>getTestRuns</b>( testIssueIds: ["10001", "10002"], testExecIssueIds: ["10001", "10002"], limit: 100 ) {
+          total
+          limit
+          start
+          results {
+              id
+              status {
+                  name
+                  color
+                  description
+              }
+              gherkin
+              examples {
+                  id
+                  status {
+                  name
+                  color
+                  description
+                  }
+              }
+              test {
+                  issueId
+              }
+              testExecution {
+                  issueId
+              }
+          }
+      }
+  }
+  </pre>
+  === ===
+  The query below returns the first 100 Test Runs that match the given ids.
+  <pre>
+  {
+      <b>getTestRuns</b>( testIssueIds: ["12345"], limit: 100 ) {
+          total
+          limit
+          start
+          results {
+              id
+              status {
+                  name
+                  color
+                  description
+              }
+              steps {
+                  action
+                  data
+                  result
+                  attachments {
+                      id
+                      filename
+                  }
+                  status {
+                      name
+                      color
+                  }
+              }
+              test {
+                  issueId
+              }
+              testExecution {
+                  issueId
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestRuns(
+    """the maximum amount of Test Runs to be returned. The maximum is 100."""
+    limit: Int!
+
+    """all TestRuns modified after this date will be returned"""
+    modifiedSince: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+
+    """the issue ids of the Test Execution of the Test Runs."""
+    testExecIssueIds: [String]
+
+    """the issue ids of the Test of the Test Runs."""
+    testIssueIds: [String]
+
+    """the user account ids of the assignee of the Test Runs."""
+    testRunAssignees: [String]
+  ): TestRunResults
+
+  """
+  Returns multiple Test Runs by id.
+  ===
+  The query below returns the first 100 Test Runs that match the given ids.
+  <pre>
+  {
+      <b>getTestRunsById</b>( ids: ["5acc7ab0a3fe1b6fcdc3c737"], limit: 10 ) {
+          total
+          limit
+          start
+          results {
+              id
+              status {
+                  name
+                  color
+                  description
+              }
+              gherkin
+              examples {
+                  id
+                  status {
+                      name
+                      color
+                      description
+                  }
+              }
+              test {
+                  issueId
+              }
+              testExecution {
+                  issueId
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestRunsById(
+    """the ids of the Test Runs."""
+    ids: [String]
+
+    """the maximum amount of Test Runs to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): TestRunResults
+
+  """
+  Returns a Test Set by issueId
+  ===
+  The query below returns a test set
+  <pre>
+  {
+      <b>getTestSet</b> {
+          issueId
+          projectId
+          jira(fields: ["assignee", "reporter"])
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns the test set with issue id **12345**
+  <pre>
+  {
+      <b>getTestSet</b>(issueId: "12345") {
+          issueId
+          tests(limit: 100) {
+              results {
+                  issueId
+                  testType {
+                      name
+                  }
+              }
+          }
+      }
+  }
+  </pre>
+  ===
+  """
+  getTestSet(
+    """the id of the Test Set issue to be returned."""
+    issueId: String
+  ): TestSet
+
+  """
+  Returns multiple Test Sets by jql, issueIds or projectId.
+  ===
+  The query below returns the first 100 Test Sets.
+  <pre>
+  {
+      <b>getTestSets</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns 10 Test Sets that match the provided jql.
+  <pre>
+  {
+      <b>getTestSets</b>(jql: "project = 'PC'", limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              tests(limit: 10) {
+                  results {
+                      issueId
+                      testType {
+                          name
+                      }
+                  }
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  """
+  getTestSets(
+    """the ids of the Test Set issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """the maximum amount of Test Sets to be returned. The maximum is 100."""
+    limit: Int!
+
+    """all test sets modified after this date will be returned"""
+    modifiedSince: String
+
+    """the id of the project of the Test Set issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+  ): TestSetResults
+
+  """
+  Returns multiple tests by jql, issue ids, project id or test type.
+  ===
+  The query below returns the first 100 tests.
+  <pre>
+  {
+      <b>getTests</b>(limit: 100) {
+          total
+          start
+          limit
+          results {
+              issueId
+              testType {
+                  name
+                  kind
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  ===
+  ===
+  The query below returns 10 tests that match the provided jql.
+  <pre>
+  {
+      <b>getTests</b>(jql: "project = 'PC'", limit: 10) {
+          total
+          start
+          limit
+          results {
+              issueId
+              testType {
+                  name
+                  kind
+              }
+              steps {
+                  id
+                  data
+                  action
+                  result
+                  attachments {
+                      id
+                      filename
+                  }
+                  customfields {
+                      id
+                      value
+                  }
+              }
+              jira(fields: ["assignee", "reporter"])
+          }
+      }
+  }
+  </pre>
+  <b>Note</b>: If the jql returns more than 100 issues an error will be returned asking the user to refine the jql search.
+  ===
+  """
+  getTests(
+    """
+    the folder information required to filter the Test issues to be returned.
+    """
+    folder: FolderSearchInput
+
+    """the ids of the Test issues to be returned."""
+    issueIds: [String]
+
+    """the jql that defines the search."""
+    jql: String
+
+    """the maximum amount of Tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """all tests modified after this date will be returned"""
+    modifiedSince: String
+
+    """the id of the project of the Test issues to be returned."""
+    projectId: String
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int
+
+    """the Test Type of the Test issues to be returned."""
+    testType: TestTypeInput
+  ): TestResults
+}
+
+"""Remove defects Result Type"""
+type RemoveDefectsResult {
+  """Ids of the removed Defects."""
+  removedDefects: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Remove Evidence Result Type"""
+type RemoveEvidenceResult {
+  """Ids of the removed Evidence."""
+  removedEvidence: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Result Type"""
+type Result {
+  """Backgrounds of the Results."""
+  backgrounds: [ResultsStep]
+
+  """Duration of the Result."""
+  duration: Float
+
+  """Examples of the Result."""
+  examples: [ResultsExample]
+
+  """Hooks of the Results."""
+  hooks: [ResultsStep]
+
+  """Output if exist an error or a failure (JUNIT, XUNIT, NUNIT, TESTNG)"""
+  log: String
+
+  """Name of the Result."""
+  name: String
+
+  """Status of the Result."""
+  status: StepStatus
+
+  """Steps of the Results."""
+  steps: [ResultsStep]
+
+  """Whether or not the Result was imported."""
+  wasImported: String
+}
+
+"""Results Embedding"""
+type ResultsEmbedding {
+  """Data of the Embedding. Base64 format."""
+  data: String
+
+  """Link to download the embedding if no data is present"""
+  downloadLink: String
+
+  """Filename of the Embedding."""
+  filename: String
+
+  """Mime Type of the Embedding."""
+  mimeType: String
+}
+
+"""Results Example Type"""
+type ResultsExample {
+  """Backgrounds of the Results."""
+  backgrounds: [ResultsStep]
+
+  """Duration of the Result."""
+  duration: Float
+
+  """Hooks of the Results."""
+  hooks: [ResultsStep]
+
+  """Status of the Result."""
+  status: StepStatus
+
+  """Steps of the Results."""
+  steps: [ResultsStep]
+
+  """Whether or not the Result was imported."""
+  wasImported: String
+}
+
+"""Results Step"""
+type ResultsStep {
+  """Duration of the step."""
+  duration: Float
+
+  """Embeddings of the step."""
+  embeddings: [ResultsEmbedding]
+
+  """Error of the step."""
+  error: String
+
+  """If a gherkin step, keyword of the gherkin step."""
+  keyword: String
+
+  """If a Robot step, output of the Robot step."""
+  log: String
+
+  """Name of the step."""
+  name: String
+
+  """Status of the step."""
+  status: StepStatus
+}
+
+""""""
+type SimpleFolderResults {
+  """Folder issues count"""
+  issuesCount: Int
+
+  """Folder name"""
+  name: String
+
+  """Folder path"""
+  path: String
+
+  """Folder preconditions count"""
+  preconditionsCount: Int
+
+  """Folder tests count"""
+  testsCount: Int
+}
+
+"""Status Type"""
+type Status {
+  """Color of the Status."""
+  color: String
+
+  """Coverage mapping of the Status."""
+  coverageStatus: String
+
+  """Description of the Status."""
+  description: String
+
+  """Whether the Status is final or not."""
+  final: Boolean
+
+  """Name of the Status."""
+  name: String
+}
+
+"""Test Step type"""
+type Step {
+  """Action of the Step."""
+  action: String
+
+  """Attachments of the Step."""
+  attachments: [Attachment]
+
+  """The issue id of the test being called in the step."""
+  callTestIssueId: String
+
+  """Custom Fields of the Step."""
+  customFields: [CustomStepField]
+
+  """Data of the Step."""
+  data: String
+
+  """Id of the Step."""
+  id: String
+
+  """Result of the Step."""
+  result: String
+}
+
+"""Step Status Type"""
+type StepStatus {
+  """Color of the Status."""
+  color: String
+
+  """Description of the Status."""
+  description: String
+
+  """Name of the Status."""
+  name: String
+
+  """The test status to which the step status is mapped to."""
+  testStatus: Status
+}
+
+"""Test issue type"""
+type Test {
+  """List of Coverable Issues associated with the Test issue"""
+  coverableIssues(
+    """the issue ids of the Coverable Issues"""
+    issueIds: [String]
+
+    """
+    the maximum amount of Coverable Issues to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): CoverableIssueResults
+
+  """Dataset linked to the Test issue."""
+  dataset: Dataset
+
+  """Test Repository folder of the Test."""
+  folder: Folder
+
+  """Gherkin definition of the Test issue."""
+  gherkin: String
+
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Issue id of the Test issue."""
+  issueId: String
+
+  """Extra Jira information of the Test issue."""
+  jira(
+    """
+    List of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON!
+
+  """Date when the test was last modified."""
+  lastModified: String
+
+  """List of Precondition associated with the Test issue."""
+  preconditions(
+    """the ids of the Preconditions."""
+    issueIds: [String]
+
+    """
+    the maximum amount of Preconditions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): PreconditionResults
+
+  """Project id of the Test issue."""
+  projectId: String
+
+  """
+  Gherkin type of the Test issue.
+  Possible values: 'scenario' or 'scenario_outline'.
+  """
+  scenarioType: String
+
+  """
+  Status of the Test. This status can be calculated based on latest status, version or Test Plan.
+  """
+  status(
+    """the environment for which to calculate the for status."""
+    environment: String
+
+    """whether the final statuses has precedence over non-final."""
+    isFinal: Boolean = true
+
+    """the Test Plan id for which to calculate the status for."""
+    testPlan: String
+
+    """the version name for which to calculate the status for."""
+    version: String
+  ): TestStatusType
+
+  """Step definition of the Test issue."""
+  steps: [Step]
+
+  """List of Test Executions associated with the Test issue."""
+  testExecutions(
+    """the issue ids of the Test Executions"""
+    issueIds: [String]
+
+    """
+    the maximum amount of Test Executions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestExecutionResults
+
+  """List of Test Plans associated with the Test issue."""
+  testPlans(
+    """the issue ids of the Test Plans"""
+    issueIds: [String]
+
+    """the maximum amount of Test Plans to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestPlanResults
+
+  """List of Test Runs for the Test issue"""
+  testRuns(
+    """the maximum amount of Test Runs to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunResults
+
+  """List of Test Sets associated with the Test issue."""
+  testSets(
+    """the issue ids of the Test Sets"""
+    issueIds: [String]
+
+    """the maximum amount of Test Sets to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestSetResults
+
+  """Test type of the Test issue."""
+  testType: TestType
+
+  """List of Test versions of the Test"""
+  testVersions(
+    """if should include archived Test versions in the result."""
+    archived: Boolean = true
+
+    """
+    the maximum amount of Test versions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+
+    """to filter Test versions by Test Type"""
+    testTypeId: String
+  ): TestVersionResults
+
+  """Unstructured definition of the Test issue."""
+  unstructured: String
+}
+
+"""Test Execution issue type"""
+type TestExecution {
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Id of the Test Execution issue."""
+  issueId: String
+
+  """Extra Jira information of the Test Execution Issue."""
+  jira(
+    """
+    List of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON
+
+  """Date when the test exec was last modified."""
+  lastModified: String
+
+  """Project id of the Test Execution issue."""
+  projectId: String
+
+  """Test Environments of the Test Execution."""
+  testEnvironments: [String]
+
+  """List of Test Plans associated with the Test Execution Issue."""
+  testPlans(
+    """Ids of the Test Plans."""
+    issueIds: [String]
+
+    """the maximum amount of Test Plans to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestPlanResults
+
+  """List of Test Runs for the Test Execution Issue."""
+  testRuns(
+    """the maximum amount of tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunResults
+
+  """List of Tests associated with the Test Execution Issue."""
+  tests(
+    """the issue ids of the Tests."""
+    issueIds: [String]
+
+    """the maximum amount of tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestResults
+}
+
+"""Test Execution Results Type"""
+type TestExecutionResults {
+  """Maximum amount of Test Executions to be returned. The maximum is 100."""
+  limit: Int
+
+  """Test Execution issue results."""
+  results: [TestExecution]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+}
+
+"""Test Plan issue type"""
+type TestPlan {
+  """Folder structure of the Test Plan."""
+  folders: FolderResults
+
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Id of the Test Plan issue."""
+  issueId: String
+
+  """Extra Jira information of the Test Plan issue."""
+  jira(
+    """
+    list of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON
+
+  """Date when the test plan was last modified."""
+  lastModified: String
+
+  """Project id of the Test Plan issue."""
+  projectId: String
+
+  """List of Test Executions associated with the Test Plan issue."""
+  testExecutions(
+    """issue ids of the Test Executions."""
+    issueIds: [String]
+
+    """the maximum amount of tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestExecutionResults
+
+  """List of Tests associated with the Test Plan issue."""
+  tests(
+    """the issue ids of the Tests."""
+    issueIds: [String]
+
+    """the maximum amount of tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestResults
+}
+
+"""Test Plan Results type"""
+type TestPlanResults {
+  """Maximum amount of Test Plans to be returned. The maximum is 100."""
+  limit: Int
+
+  """Test Plan issue results."""
+  results: [TestPlan]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Test Results type"""
+type TestResults {
+  """The maximum amount of Tests to be returned. The maximum is 100."""
+  limit: Int
+
+  """Test issue results."""
+  results: [Test]
+
+  """
+  The index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+
+  """Warnings generated if you have a invalid Test"""
+  warnings: [String]
+}
+
+"""Test Run type"""
+type TestRun {
+  """
+  User's account id assigned to the Test Run. This is user assigned to the Test Run, not taking into account the assignee of the test execution.
+  """
+  assigneeId: String
+
+  """Comment definition of the Test Run."""
+  comment: String
+
+  """Custom Fields of the Test Run."""
+  customFields: [TestRunCustomFieldValue]
+
+  """Defects of the Test Run."""
+  defects: [String]
+
+  """Evidence of the Test Run."""
+  evidence: [Evidence]
+
+  """Examples of the Test Run."""
+  examples: [Example]
+
+  """User's account id that executed the Test Run."""
+  executedById: String
+
+  """Finished On date of the Test Run."""
+  finishedOn: String
+
+  """Cucumber definition of the Test issue."""
+  gherkin: String
+
+  """Id of the Test Run."""
+  id: String
+
+  """Iterations of the Test Run."""
+  iterations(
+    """the maximum amount of iterations to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunIterationResults
+
+  """Date when the test run was last modified."""
+  lastModified: String
+
+  """Parameters of the Test Run."""
+  parameters: [TestRunParameter]
+
+  """Preconditions of the Test Run."""
+  preconditions(
+    """
+    the maximum amount of Preconditions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunPreconditionResults
+
+  """Results of the Test Run."""
+  results: [Result]
+
+  """Cucumber Type definition of the Test Run."""
+  scenarioType: String
+
+  """Started On date of the Test Run."""
+  startedOn: String
+
+  """Status of the Test Run."""
+  status: Status
+
+  """Step definition of the Test Run."""
+  steps: [TestRunStep]
+
+  """Test of the Test Run."""
+  test: Test
+
+  """Test Execution of the Test Run."""
+  testExecution: TestExecution
+
+  """Test Type of the Test Run."""
+  testType: TestType
+
+  """Test version of the Test Run."""
+  testVersion: TestVersion
+
+  """Generic definition of the Test issue."""
+  unstructured: String
+}
+
+"""Custom Fields Type"""
+type TestRunCustomFieldValue {
+  """"""
+  id: String
+
+  """"""
+  name: String
+
+  """"""
+  values: JSON
+}
+
+"""Step CustomField type"""
+type TestRunCustomStepField {
+  """Id of the Custom Field."""
+  id: String
+
+  """Name of the Custom Field."""
+  name: String
+
+  """Value of the Custom Field."""
+  value: JSON
+}
+
+"""Test Run Defect Operations Input"""
+input TestRunDefectOperationsInput {
+  """Defects to add to the Test Run Step."""
+  add: [String]
+
+  """Defects to remove from the Test Run Step."""
+  remove: [String]
+}
+
+"""Test Run Evidence Operations Input"""
+input TestRunEvidenceOperationsInput {
+  """Evidence to add to the Test Run Step."""
+  add: [AttachmentDataInput]
+
+  """Evidence filenames to remove from the Test Run Step."""
+  removeFilenames: [String]
+
+  """Evidence ids to remove from the Test Run Step."""
+  removeIds: [String]
+}
+
+"""Test Run iteration type"""
+type TestRunIteration {
+  """Parameters of the iteration."""
+  parameters: [TestRunParameter]
+
+  """Rank of the iteration."""
+  rank: String
+
+  """Status of the iteration."""
+  status: StepStatus
+
+  """Step results of the iteration."""
+  stepResults(
+    """the maximum amount of step results to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunIterationStepResults
+}
+
+"""Test Run iterations results type"""
+type TestRunIterationResults {
+  """Maximum amount of iterations to be returned. The maximum is 100."""
+  limit: Int
+
+  """Iteration results."""
+  results: [TestRunIteration]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of iterations."""
+  total: Int
+}
+
+"""Test Run iteration step result type"""
+type TestRunIterationStepResult {
+  """Actual Result of the Test Run step."""
+  actualResult: String
+
+  """Comment of the Test Run step."""
+  comment: String
+
+  """Defects of the Test Run step."""
+  defects: [String]
+
+  """Evidence of the Test Run step."""
+  evidence: [Evidence]
+
+  """Id of the Test Run step."""
+  id: String
+
+  """Status of the Test Run step."""
+  status: StepStatus
+}
+
+"""Test Run iteration step results results type"""
+type TestRunIterationStepResults {
+  """Maximum amount of step results to be returned. The maximum is 100."""
+  limit: Int
+
+  """Step results."""
+  results: [TestRunIterationStepResult]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of steps."""
+  total: Int
+}
+
+"""Test Run parameter type"""
+type TestRunParameter {
+  """"""
+  name: String
+
+  """"""
+  value: String
+}
+
+"""Test Run Precondition type"""
+type TestRunPrecondition {
+  """Precondition definition."""
+  definition: String
+
+  """Precondition of the Test Run."""
+  preconditionRef: Precondition
+}
+
+"""Precondition Results type"""
+type TestRunPreconditionResults {
+  """Maximum amount of Preconditions to be returned. The maximum is 100."""
+  limit: Int
+
+  """Precondition results."""
+  results: [TestRunPrecondition]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of preconditions."""
+  total: Int
+}
+
+"""Test Run Results type"""
+type TestRunResults {
+  """The maximum amount of Test Runs to be returned. The maximum is 100."""
+  limit: Int
+
+  """Test Run results."""
+  results: [TestRun]
+
+  """
+  The index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of Test Runs."""
+  total: Int
+}
+
+"""Test Run Step Type"""
+type TestRunStep {
+  """Action of the Test Run Step."""
+  action: String
+
+  """Actual Result of the Test Run Step."""
+  actualResult: String
+
+  """Attachments of the Test Run Step."""
+  attachments: [Attachment]
+
+  """Comment of the Test Run Step."""
+  comment: String
+
+  """Custom Fields of the Test Run Step."""
+  customFields: [TestRunCustomStepField]
+
+  """Data of the Test Run Step."""
+  data: String
+
+  """Defects of the Test Run Step."""
+  defects: [String]
+
+  """Evidence of the Test Run Step."""
+  evidence: [Evidence]
+
+  """Id of the Test Run Step."""
+  id: String
+
+  """Result of the Test Run Step."""
+  result: String
+
+  """Status of the Test Run Step."""
+  status: StepStatus
+}
+
+"""Test Set type"""
+type TestSet {
+  """List of Xray History results for the issue"""
+  history(
+    """the maximum amount of entries to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): XrayHistoryResults
+
+  """Issue id of the Test Set Issue."""
+  issueId: String
+
+  """Extra Jira information of the Test Set Issue."""
+  jira(
+    """
+    List of the fields to be displayed.
+    Check the field '**fields**' of [this](https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-api-3-issue-issueIdOrKey-get) Jira endpoint for more information.
+    """
+    fields: [String]
+  ): JSON
+
+  """Date when the test set was last modified."""
+  lastModified: String
+
+  """Project id of the Test Set Issue."""
+  projectId: String
+
+  """List of Tests associated with the Test Set Issue."""
+  tests(
+    """Ids of the Tests."""
+    issueIds: [String]
+
+    """Maximum amount of tests to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    Index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestResults
+}
+
+"""Test Set Results"""
+type TestSetResults {
+  """Maximum amount of test sets to be returned. The maximum is 100."""
+  limit: Int
+
+  """Test Set issue results."""
+  results: [TestSet]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+}
+
+"""Test Status Type"""
+type TestStatusType {
+  """Color of the Test Status."""
+  color: String
+
+  """Description of the Test Status."""
+  description: String
+
+  """Whether the status is final or not."""
+  final: Boolean
+
+  """Name of the Test Status."""
+  name: String
+}
+
+"""Test Type type"""
+type TestType {
+  """Id of the Test Type."""
+  id: String
+
+  """
+  Kind of the Test Type.
+  Possible values are "Gherkin", "Steps" or "Unstructured".
+  """
+  kind: String
+
+  """Name of the Test Type."""
+  name: String
+}
+
+"""Test Type input"""
+input TestTypeInput {
+  """Id of the Test Type."""
+  id: String
+
+  """
+  Kind of the Test Type.
+  Possible values are "Gherkin", "Steps" or "Unstructured".
+  """
+  kind: String
+
+  """Name of the Test Type."""
+  name: String
+}
+
+""""""
+type TestVersion {
+  """If is an archived Test version."""
+  archived: Boolean!
+
+  """If is the default Test version."""
+  default: Boolean!
+
+  """Gherkin definition of the Test version."""
+  gherkin: String
+
+  """Number of the Test version."""
+  id: Int!
+
+  """Date when the Test version was last modified."""
+  lastModified: String
+
+  """Name of the Test version."""
+  name: String!
+
+  """"""
+  preconditions(
+    """the ids of the Preconditions."""
+    issueIds: [String]
+
+    """
+    the maximum amount of Preconditions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): PreconditionResults
+
+  """
+  Gherkin type of the Test version.
+  Possible values: 'scenario' or 'scenario_outline'.
+  """
+  scenarioType: String
+
+  """Step definition of the Test version."""
+  steps: [Step]
+
+  """"""
+  test: Test!
+
+  """List of Test Executions associated with the Test version."""
+  testExecutions(
+    """the issue ids of the Test Executions"""
+    issueIds: [String]
+
+    """
+    the maximum amount of Test Executions to be returned. The maximum is 100.
+    """
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestExecutionResults
+
+  """"""
+  testRuns(
+    """the maximum amount of Test Runs to be returned. The maximum is 100."""
+    limit: Int!
+
+    """
+    the index of the first item to return in the page of results (page offset).
+    """
+    start: Int = 0
+  ): TestRunResults
+
+  """Test type of the Test version."""
+  testType: TestType
+
+  """Unstructured definition of the Test version."""
+  unstructured: String
+}
+
+"""Test version results type"""
+type TestVersionResults {
+  """
+  The maximum amount of Test versions to be returned. The maximum is 100.
+  """
+  limit: Int
+
+  """Test version results."""
+  results: [TestVersion]
+
+  """
+  The index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of Test versions."""
+  total: Int
+}
+
+"""Test with Version input"""
+input TestWithVersionInput {
+  """Issue id of the Test issue."""
+  issueId: String
+
+  """Test Version id of the Test Issue"""
+  versionId: Int
+}
+
+"""Update Test Run iteration status result type"""
+type UpdateIterationStatusResult {
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Update Precondition input"""
+input UpdatePreconditionInput {
+  """Definition of the Precondition Issue."""
+  definition: String
+
+  """the repository path to which the Precondition should be moved to"""
+  folderPath: String
+
+  """Precondition type of the Precondition Issue."""
+  preconditionType: UpdatePreconditionTypeInput
+}
+
+"""Precondition Type input"""
+input UpdatePreconditionTypeInput {
+  """Id of the Precondition Type."""
+  id: String
+
+  """Name of the Precondition Type."""
+  name: String
+}
+
+"""Update Step input"""
+input UpdateStepInput {
+  """Action of the Step."""
+  action: String
+
+  """Attachments of the Step."""
+  attachments: AttachmentOperationsInput
+
+  """Custom Fields of the Step"""
+  customFields: [CustomStepFieldInput]
+
+  """Data of the Step."""
+  data: String
+
+  """Result of the Step."""
+  result: String
+}
+
+"""Update Test Run Example Status Result Type"""
+type UpdateTestRunExampleStatusResult {
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Update Test Run Result Type"""
+type UpdateTestRunResult {
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Update Test Run Step Input"""
+input UpdateTestRunStepInput {
+  """Actual Result of the Test Run Step."""
+  actualResult: String
+
+  """Comment to add to the Test Run Step."""
+  comment: String
+
+  """Defects of the Test Run Step."""
+  defects: TestRunDefectOperationsInput
+
+  """Evidence of the Test Run Step."""
+  evidence: TestRunEvidenceOperationsInput
+
+  """Status to set to the Test Run Step."""
+  status: String
+}
+
+"""Update Test Run Step Result Type"""
+type UpdateTestRunStepResult {
+  """Ids of the added Defects."""
+  addedDefects: [String]
+
+  """Ids of the added Evidence."""
+  addedEvidence: [String]
+
+  """Ids of the removed Defects."""
+  removedDefects: [String]
+
+  """Ids of the removed Evidence."""
+  removedEvidence: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Update Test Run Step Status Result Type"""
+type UpdateTestRunStepStatusResult {
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Update Test Step Results type"""
+type UpdateTestStepResult {
+  """List of added attachments."""
+  addedAttachments: [String]
+
+  """List of removed attachments."""
+  removedAttachments: [String]
+
+  """Warnings generated during the operation."""
+  warnings: [String]
+}
+
+"""Test Type input"""
+input UpdateTestTypeInput {
+  """Id of the Test Type."""
+  id: String
+
+  """Name of the Test Type."""
+  name: String
+}
+
+"""Xray History Entry type"""
+type XrayHistoryEntry {
+  """Action performed."""
+  action: String
+
+  """Details of the change(s)."""
+  changes: [Changes]
+
+  """Date of change(s)."""
+  date: String
+
+  """User that performed the change(s)."""
+  user: String
+
+  """Test Version that the changes refer to (if applicable)."""
+  version: String
+}
+
+"""Xray History Results type"""
+type XrayHistoryResults {
+  """Maximum amount of History results to be returned. The maximum is 100."""
+  limit: Int
+
+  """Precondition issue results."""
+  results: [XrayHistoryEntry]
+
+  """
+  Index of the first item to return in the page of results (page offset).
+  """
+  start: Int
+
+  """Total amount of issues."""
+  total: Int
+}

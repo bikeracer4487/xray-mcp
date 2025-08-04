@@ -203,11 +203,19 @@ class JQLValidator:
         paren_pattern = re.compile(r'\([^)]*\)')
         jql_without_parens = paren_pattern.sub('()', jql_without_quotes)
         
-        # Find all field-like tokens
-        fields = self._field_pattern.findall(jql_without_parens)
+        # Extract fields using a more precise approach that considers JQL syntax
+        # Pattern to match field names that come before operators or at start of expressions
+        # This avoids matching values after = or other operators
+        field_extraction_pattern = re.compile(
+            r'(?:^|[\s(])(cf\[\d+\]|[a-zA-Z][a-zA-Z0-9_]*)(?=\s*(?:=|!=|~|!~|>|>=|<|<=|\s+(?:in|not\s+in|is|is\s+not|was|was\s+not|was\s+in|was\s+not\s+in|changed|not\s+changed)\s))',
+            re.IGNORECASE
+        )
+        
+        # Find field names that appear before operators
+        field_matches = field_extraction_pattern.findall(jql_without_parens)
         
         # Check each field against whitelist
-        for field in fields:
+        for field in field_matches:
             # Skip if it's a keyword or function
             field_lower = field.lower()
             if (field_lower in self.ALLOWED_KEYWORDS or 

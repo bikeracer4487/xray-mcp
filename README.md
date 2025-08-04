@@ -4,12 +4,15 @@ A Model Context Protocol (MCP) server for Jira Xray test management, built with 
 
 ## Features
 
-- **Authentication Management**: Automatic JWT token handling with refresh
-- **Test Management**: Create, read, update, and delete tests
+- **Authentication Management**: Automatic JWT token handling with refresh and race condition protection
+- **Test Management**: Create, read, update, and delete tests (Manual, Cucumber, Generic types)
 - **Test Execution Management**: Manage test executions and their associated tests
 - **GraphQL Integration**: Full integration with Xray's GraphQL API
-- **Error Handling**: Comprehensive error handling with meaningful messages
+- **Security**: JQL injection prevention with whitelist-based validation
+- **Error Handling**: Comprehensive error handling with structured responses
 - **Type Safety**: Full type annotations for better development experience
+- **Abstractions**: Clean architecture with repository patterns and decorators
+- **Testing**: Comprehensive test suite with mock-based testing
 
 ## Installation
 
@@ -52,7 +55,7 @@ This will start the MCP server using the stdio transport, which is the standard 
 ### Using with FastMCP CLI
 
 ```bash
-fastmcp run main.py:server
+fastmcp run main.py:mcp
 ```
 
 ### Programmatic Usage
@@ -185,31 +188,66 @@ The server is built with a modular architecture:
 ## Limitations
 
 - JQL queries are limited to 100 results due to Xray API restrictions
-- Some advanced Xray features may not be implemented yet
-- Test Plans and Test Runs tools are placeholder implementations
+- Test Plans and Test Runs tools are placeholder implementations (documented stubs)
+- Some advanced Xray features like test cycles may not be fully implemented
 
 ## Development
+
+### Running Tests
+
+The project includes a comprehensive test suite:
+
+```bash
+# Run the test server
+python test_server.py
+
+# Run specific test modules  
+python -m pytest tests/test_tools_tests.py
+python -m pytest tests/test_auth_race_condition.py
+```
 
 ### Project Structure
 
 ```
-xray_mcp_server/
-├── __init__.py
+xray-mcp/
 ├── main.py                 # Main server implementation
+├── example.py              # Usage examples
+├── test_server.py          # Test suite
 ├── auth/
+│   ├── __init__.py
 │   └── manager.py         # Authentication management
 ├── client/
+│   ├── __init__.py
 │   └── graphql.py         # GraphQL client
 ├── tools/
+│   ├── __init__.py
 │   ├── tests.py           # Test management tools
 │   ├── executions.py      # Test execution tools
 │   ├── plans.py           # Test plan tools (placeholder)
 │   ├── runs.py            # Test run tools (placeholder)
 │   └── utils.py           # Utility tools
 ├── config/
+│   ├── __init__.py
 │   └── settings.py        # Configuration management
 ├── exceptions/
+│   ├── __init__.py
 │   └── errors.py          # Custom exceptions
+├── validators/
+│   ├── __init__.py
+│   └── jql_validator.py   # JQL security validation
+├── abstractions/
+│   ├── __init__.py
+│   ├── base.py            # Base classes and interfaces
+│   ├── decorators.py      # Tool decorators
+│   ├── factory.py         # Tool factory
+│   └── repository.py      # Repository patterns
+├── errors/
+│   ├── __init__.py
+│   └── handlers.py        # Error handling utilities
+├── tests/                  # Test files
+│   ├── __init__.py
+│   ├── conftest.py
+│   └── test_*.py          # Various test modules
 └── requirements.txt       # Dependencies
 ```
 

@@ -122,3 +122,19 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Project-specific ignores
+# Virtual environments (project-specific naming)
+.xray-mcp_venv/
+
+# Temporary and debug files
+*.py.bak
+
+# Desktop Commander configuration
+.desktop_configured
+
+# Test outputs and summaries
+tests/TEST_SUMMARY.md
+
+# macOS files
+.DS_Store

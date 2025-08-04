@@ -189,7 +189,7 @@ class XrayMCPServer:
         """
         
         # Test Management Tools
-        @self.mcp.tool
+        @self.mcp.tool()
         async def get_test(issue_id: str) -> Dict[str, Any]:
             """Retrieve a single test by issue ID.
             
@@ -204,7 +204,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def get_tests(jql: Optional[str] = None, limit: int = 100) -> Dict[str, Any]:
             """Retrieve multiple tests with optional JQL filtering.
             
@@ -220,7 +220,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def get_expanded_test(issue_id: str, test_version_id: Optional[int] = None) -> Dict[str, Any]:
             """Retrieve detailed information for a single test with version support.
             
@@ -236,7 +236,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def create_test(
             project_key: str,
             summary: str,
@@ -267,7 +267,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def delete_test(issue_id: str) -> Dict[str, Any]:
             """Delete a test from Xray.
             
@@ -282,7 +282,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def update_test_type(issue_id: str, test_type: str) -> Dict[str, Any]:
             """Update the test type of an existing test.
             
@@ -299,7 +299,7 @@ class XrayMCPServer:
                 return {"error": str(e), "type": type(e).__name__}
         
         # Test Execution Tools
-        @self.mcp.tool
+        @self.mcp.tool()
         async def get_test_execution(issue_id: str) -> Dict[str, Any]:
             """Retrieve a single test execution by issue ID.
             
@@ -314,7 +314,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def get_test_executions(jql: Optional[str] = None, limit: int = 100) -> Dict[str, Any]:
             """Retrieve multiple test executions with optional JQL filtering.
             
@@ -330,7 +330,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def create_test_execution(
             project_key: str,
             summary: str,
@@ -357,7 +357,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def delete_test_execution(issue_id: str) -> Dict[str, Any]:
             """Delete a test execution from Xray.
             
@@ -372,7 +372,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def add_tests_to_execution(execution_issue_id: str, test_issue_ids: List[str]) -> Dict[str, Any]:
             """Add tests to an existing test execution.
             
@@ -388,7 +388,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def remove_tests_from_execution(execution_issue_id: str, test_issue_ids: List[str]) -> Dict[str, Any]:
             """Remove tests from an existing test execution.
             
@@ -405,7 +405,7 @@ class XrayMCPServer:
                 return {"error": str(e), "type": type(e).__name__}
         
         # Utility Tools
-        @self.mcp.tool
+        @self.mcp.tool()
         async def execute_jql_query(jql: str, entity_type: str = "test", limit: int = 100) -> Dict[str, Any]:
             """Execute a custom JQL query for different entity types.
             
@@ -422,7 +422,7 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
         
-        @self.mcp.tool
+        @self.mcp.tool()
         async def validate_connection() -> Dict[str, Any]:
             """Test connection and authentication with Xray API.
             

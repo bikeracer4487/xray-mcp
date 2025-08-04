@@ -60,14 +60,57 @@ class TestTools:
         """
         self.client = graphql_client
     
-    async def get_test(self, issue_id: str) -> Dict[str, Any]:
-        """Retrieve a single test by issue ID.
-        
-        Fetches complete test information including test type, steps,
-        Gherkin scenarios, and associated Jira fields.
+    async def _resolve_issue_id(self, identifier: str) -> str:
+        """Resolve a Jira key or issue ID to a numeric issue ID.
         
         Args:
-            issue_id (str): Jira issue ID of the test (e.g., "TEST-123")
+            identifier: Either a Jira key (e.g., "TEST-123") or numeric issue ID (e.g., "1162822")
+            
+        Returns:
+            str: Numeric issue ID that can be used with GraphQL queries
+            
+        Raises:
+            GraphQLError: If the identifier cannot be resolved
+        """
+        # If it's already numeric, return as-is
+        if identifier.isdigit():
+            return identifier
+            
+        # If it looks like a Jira key (contains dash), try to resolve it
+        if "-" in identifier:
+            # Use JQL query to find the issue ID for this key
+            query = """
+            query GetTestByKey($jql: String!, $limit: Int!) {
+                getTests(jql: $jql, limit: $limit) {
+                    results {
+                        issueId
+                        jira(fields: ["key"])
+                    }
+                }
+            }
+            """
+            
+            variables = {"jql": f'key = "{identifier}"', "limit": 1}
+            result = await self.client.execute_query(query, variables)
+            
+            if ("data" in result and "getTests" in result["data"] and 
+                result["data"]["getTests"]["results"]):
+                return result["data"]["getTests"]["results"][0]["issueId"]
+            else:
+                raise GraphQLError(f"Could not resolve Jira key {identifier} to issue ID")
+        
+        # If it's neither numeric nor contains dash, assume it's already an issue ID
+        return identifier
+    
+    async def get_test(self, issue_id: str) -> Dict[str, Any]:
+        """Retrieve a single test by issue ID or Jira key.
+        
+        Fetches complete test information including test type, steps,
+        Gherkin scenarios, and associated Jira fields. Accepts both
+        numeric issue IDs and Jira keys for convenience.
+        
+        Args:
+            issue_id (str): Jira issue ID or key (e.g., "1162822" or "TEST-123")
         
         Returns:
             Dict[str, Any]: Test data including:
@@ -112,7 +155,10 @@ class TestTools:
         }
         """
         
-        variables = {"issueId": issue_id}
+        # Resolve the identifier to a numeric issue ID
+        resolved_id = await self._resolve_issue_id(issue_id)
+        
+        variables = {"issueId": resolved_id}
         result = await self.client.execute_query(query, variables)
         
         if "data" in result and "getTest" in result["data"] and result["data"]["getTest"] is not None:
@@ -204,9 +250,10 @@ class TestTools:
         
         Fetches expanded test information including version details, parent/child
         relationships, and additional metadata not available in get_test.
+        Accepts both numeric issue IDs and Jira keys for convenience.
         
         Args:
-            issue_id (str): Jira issue ID of the test
+            issue_id (str): Jira issue ID or key (e.g., "1162822" or "TEST-123")
             test_version_id (Optional[int]): Specific test version ID to retrieve.
                 If None, returns the latest version.
         
@@ -256,7 +303,10 @@ class TestTools:
         }
         """
         
-        variables = {"issueId": issue_id}
+        # Resolve the identifier to a numeric issue ID
+        resolved_id = await self._resolve_issue_id(issue_id)
+        
+        variables = {"issueId": resolved_id}
         if test_version_id is not None:
             variables["versionId"] = test_version_id
         
