@@ -4,7 +4,7 @@ from .errors import (
     GraphQLError,
     ValidationError,
     ConnectionError,
-    RateLimitError
+    RateLimitError,
 )
 
 __all__ = [
@@ -13,6 +13,5 @@ __all__ = [
     "GraphQLError",
     "ValidationError",
     "ConnectionError",
-    "RateLimitError"
+    "RateLimitError",
 ]
-

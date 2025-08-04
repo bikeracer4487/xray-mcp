@@ -8,12 +8,18 @@ from typing import Dict, Any, List, Optional
 
 # Handle both package and direct execution import modes
 try:
-    from ..abstractions import BaseTool, Repository, tool_error_handler, validate_required
+    from ..abstractions import (
+        BaseTool,
+        Repository,
+        tool_error_handler,
+        validate_required,
+    )
     from ..exceptions import ValidationError
     from ..validators import validate_jql
 except ImportError:
     import sys
-    sys.path.append('..')
+
+    sys.path.append("..")
     from abstractions import BaseTool, Repository, tool_error_handler, validate_required
     from exceptions import ValidationError
     from validators import validate_jql
@@ -21,25 +27,25 @@ except ImportError:
 
 class TestToolsRefactored(BaseTool):
     """Refactored tools for managing tests in Xray.
-    
+
     This implementation uses the abstraction layer to reduce coupling
     with the GraphQL client and standardize error handling.
     """
-    
+
     def __init__(self, repository: Repository):
         """Initialize with a repository instead of GraphQL client."""
         super().__init__(repository)
         self._name = "TestTools"
         self._description = "Tools for managing tests in Xray"
-    
+
     @tool_error_handler
-    @validate_required('issue_id')
+    @validate_required("issue_id")
     async def get_test(self, issue_id: str) -> Dict[str, Any]:
         """Retrieve a single test by issue ID.
-        
+
         Args:
             issue_id: The Jira issue ID of the test
-            
+
         Returns:
             Test information including type, steps, and other fields
         """
@@ -74,36 +80,32 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-        
+
         # Use string interpolation instead of GraphQL variables for simple cases
         jql = f'issue = "{issue_id}"'
         safe_jql = validate_jql(jql)
-        
+
         result = await self.repository.execute_query(
-            query.replace('$issueId', safe_jql),
-            {}
+            query.replace("$issueId", safe_jql), {}
         )
-        
+
         tests = result.get("getTests", {})
         if tests.get("total", 0) == 0:
             raise ValidationError(f"Test not found: {issue_id}")
-        
+
         return tests["results"][0]
-    
+
     @tool_error_handler
     async def get_tests(
-        self,
-        jql: Optional[str] = None,
-        limit: int = 100,
-        start: int = 0
+        self, jql: Optional[str] = None, limit: int = 100, start: int = 0
     ) -> Dict[str, Any]:
         """Retrieve multiple tests based on JQL query.
-        
+
         Args:
             jql: Optional JQL query to filter tests
             limit: Maximum number of tests to return (default: 100)
             start: Starting index for pagination (default: 0)
-            
+
         Returns:
             Dictionary containing total count and list of tests
         """
@@ -112,7 +114,7 @@ class TestToolsRefactored(BaseTool):
             jql = validate_jql(jql)
         else:
             jql = 'type = "Test"'
-        
+
         query = """
         query GetTests($jql: String!, $limit: Int!, $start: Int!) {
             getTests(jql: $jql, limit: $limit, start: $start) {
@@ -134,17 +136,13 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-        
-        variables = {
-            "jql": jql,
-            "limit": limit,
-            "start": start
-        }
-        
+
+        variables = {"jql": jql, "limit": limit, "start": start}
+
         return await self.repository.execute_query(query, variables)
-    
+
     @tool_error_handler
-    @validate_required('project_key', 'summary', 'test_type')
+    @validate_required("project_key", "summary", "test_type")
     async def create_test(
         self,
         project_key: str,
@@ -155,10 +153,10 @@ class TestToolsRefactored(BaseTool):
         gherkin: Optional[str] = None,
         unstructured: Optional[str] = None,
         labels: Optional[List[str]] = None,
-        components: Optional[List[str]] = None
+        components: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Create a new test in Xray.
-        
+
         Args:
             project_key: Jira project key
             summary: Test summary
@@ -169,15 +167,17 @@ class TestToolsRefactored(BaseTool):
             unstructured: Optional unstructured content (for Generic tests)
             labels: Optional list of labels
             components: Optional list of components
-            
+
         Returns:
             Created test information
         """
         # Validate test type
         valid_types = ["Manual", "Cucumber", "Generic"]
         if test_type not in valid_types:
-            raise ValidationError(f"Invalid test type: {test_type}. Must be one of {valid_types}")
-        
+            raise ValidationError(
+                f"Invalid test type: {test_type}. Must be one of {valid_types}"
+            )
+
         # Build mutation based on test type
         if test_type == "Manual":
             mutation = self._build_manual_test_mutation()
@@ -194,17 +194,17 @@ class TestToolsRefactored(BaseTool):
             variables = self._build_generic_test_variables(
                 project_key, summary, description, unstructured, labels, components
             )
-        
+
         return await self.repository.execute_mutation(mutation, variables)
-    
+
     @tool_error_handler
-    @validate_required('issue_id')
+    @validate_required("issue_id")
     async def delete_test(self, issue_id: str) -> Dict[str, Any]:
         """Delete a test from Xray.
-        
+
         Args:
             issue_id: The Jira issue ID of the test to delete
-            
+
         Returns:
             Deletion confirmation
         """
@@ -216,18 +216,18 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-        
+
         variables = {"issueId": issue_id}
-        
+
         result = await self.repository.execute_mutation(mutation, variables)
-        
+
         if not result.get("deleteTest", {}).get("success", False):
             raise Exception(
                 f"Failed to delete test: {result.get('deleteTest', {}).get('message', 'Unknown error')}"
             )
-        
+
         return {"success": True, "issue_id": issue_id}
-    
+
     # Private helper methods
     def _build_manual_test_mutation(self) -> str:
         """Build GraphQL mutation for creating Manual test."""
@@ -262,7 +262,7 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-    
+
     def _build_manual_test_variables(
         self,
         project_key: str,
@@ -270,7 +270,7 @@ class TestToolsRefactored(BaseTool):
         description: Optional[str],
         steps: Optional[List[Dict[str, str]]],
         labels: Optional[List[str]],
-        components: Optional[List[str]]
+        components: Optional[List[str]],
     ) -> Dict[str, Any]:
         """Build variables for Manual test creation."""
         variables = {
@@ -278,22 +278,22 @@ class TestToolsRefactored(BaseTool):
             "summary": summary,
             "description": description,
             "labels": labels or [],
-            "components": components or []
+            "components": components or [],
         }
-        
+
         # Format steps if provided
         if steps:
             variables["steps"] = [
                 {
                     "action": step.get("action", ""),
                     "data": step.get("data", ""),
-                    "result": step.get("result", "")
+                    "result": step.get("result", ""),
                 }
                 for step in steps
             ]
-        
+
         return variables
-    
+
     def _build_cucumber_test_mutation(self) -> str:
         """Build GraphQL mutation for creating Cucumber test."""
         return """
@@ -327,7 +327,7 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-    
+
     def _build_cucumber_test_variables(
         self,
         project_key: str,
@@ -335,21 +335,21 @@ class TestToolsRefactored(BaseTool):
         description: Optional[str],
         gherkin: Optional[str],
         labels: Optional[List[str]],
-        components: Optional[List[str]]
+        components: Optional[List[str]],
     ) -> Dict[str, Any]:
         """Build variables for Cucumber test creation."""
         if not gherkin:
             raise ValidationError("Gherkin content is required for Cucumber tests")
-        
+
         return {
             "projectKey": project_key,
             "summary": summary,
             "description": description,
             "gherkin": gherkin,
             "labels": labels or [],
-            "components": components or []
+            "components": components or [],
         }
-    
+
     def _build_generic_test_mutation(self) -> str:
         """Build GraphQL mutation for creating Generic test."""
         return """
@@ -383,7 +383,7 @@ class TestToolsRefactored(BaseTool):
             }
         }
         """
-    
+
     def _build_generic_test_variables(
         self,
         project_key: str,
@@ -391,37 +391,35 @@ class TestToolsRefactored(BaseTool):
         description: Optional[str],
         unstructured: Optional[str],
         labels: Optional[List[str]],
-        components: Optional[List[str]]
+        components: Optional[List[str]],
     ) -> Dict[str, Any]:
         """Build variables for Generic test creation."""
         if not unstructured:
             raise ValidationError("Unstructured content is required for Generic tests")
-        
+
         return {
             "projectKey": project_key,
             "summary": summary,
             "description": description,
             "unstructured": unstructured,
             "labels": labels or [],
-            "components": components or []
+            "components": components or [],
         }
-    
+
     # Implement the abstract execute method
     async def execute(self, **kwargs) -> Dict[str, Any]:
         """Execute tool based on the action parameter."""
-        action = kwargs.get('action')
-        
-        if action == 'get':
-            return await self.get_test(kwargs.get('issue_id'))
-        elif action == 'list':
+        action = kwargs.get("action")
+
+        if action == "get":
+            return await self.get_test(kwargs.get("issue_id"))
+        elif action == "list":
             return await self.get_tests(
-                kwargs.get('jql'),
-                kwargs.get('limit', 100),
-                kwargs.get('start', 0)
+                kwargs.get("jql"), kwargs.get("limit", 100), kwargs.get("start", 0)
             )
-        elif action == 'create':
+        elif action == "create":
             return await self.create_test(**kwargs)
-        elif action == 'delete':
-            return await self.delete_test(kwargs.get('issue_id'))
+        elif action == "delete":
+            return await self.delete_test(kwargs.get("issue_id"))
         else:
             raise ValidationError(f"Unknown action: {action}")

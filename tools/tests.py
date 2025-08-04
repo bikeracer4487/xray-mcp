@@ -475,6 +475,7 @@ class TestTools:
                         "Steps must be either TestStep objects or dictionaries"
                     )
 
+            # Based on actual createTest GraphQL schema from documentation
             mutation = """
             mutation CreateTest($testType: UpdateTestTypeInput!, $steps: [CreateStepInput!]!, $jira: JSON!) {
                 createTest(testType: $testType, steps: $steps, jira: $jira) {
@@ -484,7 +485,6 @@ class TestTools:
                             name
                         }
                         steps {
-                            id
                             action
                             data
                             result

