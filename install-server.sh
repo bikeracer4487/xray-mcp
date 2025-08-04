@@ -30,7 +30,6 @@ readonly NC='\033[0m' # No Color
 
 # Configuration
 readonly VENV_PATH=".xray-mcp_venv"
-readonly DESKTOP_CONFIG_FLAG=".desktop_configured"
 
 # ----------------------------------------------------------------------------
 # Utility Functions
@@ -131,6 +130,11 @@ get_claude_config_path() {
             echo ""
             ;;
     esac
+}
+
+# Get Cursor config path (cross-platform)
+get_cursor_config_path() {
+    echo "$HOME/.cursor/mcp.json"
 }
 
 # ----------------------------------------------------------------------------
@@ -388,18 +392,179 @@ validate_api_keys() {
 }
 
 # ----------------------------------------------------------------------------
-# Claude Integration Functions
+# IDE Integration Functions
 # ----------------------------------------------------------------------------
+
+# Shared function to update IDE configuration with proper duplicate detection
+update_ide_config() {
+    local ide_name="$1"
+    local config_path="$2"
+    local python_cmd="$3"
+    local server_path="$4"
+    
+    # Create config directory if it doesn't exist
+    local config_dir=$(dirname "$config_path")
+    mkdir -p "$config_dir" 2>/dev/null || true
+    
+    # Handle existing config
+    if [[ -f "$config_path" ]]; then
+        # Add new config with duplicate detection
+        local temp_file=$(mktemp)
+        python3 -c "
+import json
+import sys
+
+try:
+    with open('$config_path', 'r') as f:
+        config = json.load(f)
+except Exception as e:
+    print('Warning: Could not parse existing config file, creating new one')
+    config = {}
+
+# Ensure mcpServers exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Check if xray server already exists
+new_config = {
+    'command': '$python_cmd',
+    'args': ['$server_path']
+}
+
+if 'xray' in config['mcpServers']:
+    existing_config = config['mcpServers']['xray']
+    if existing_config == new_config:
+        print('ALREADY_CONFIGURED')
+        sys.exit(0)
+    else:
+        print('UPDATING_EXISTING')
+        print('Old config:', json.dumps(existing_config, indent=2))
+        print('New config:', json.dumps(new_config, indent=2))
+else:
+    print('ADDING_NEW')
+
+# Add/update xray server
+config['mcpServers']['xray'] = new_config
+
+with open('$temp_file', 'w') as f:
+    json.dump(config, f, indent=2)
+" 2>/dev/null
+        
+        local python_exit_code=$?
+        local python_output=$(python3 -c "
+import json
+import sys
+
+try:
+    with open('$config_path', 'r') as f:
+        config = json.load(f)
+except Exception as e:
+    print('Warning: Could not parse existing config file, creating new one')
+    config = {}
+
+# Ensure mcpServers exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Check if xray server already exists
+new_config = {
+    'command': '$python_cmd',
+    'args': ['$server_path']
+}
+
+if 'xray' in config['mcpServers']:
+    existing_config = config['mcpServers']['xray']
+    if existing_config == new_config:
+        print('ALREADY_CONFIGURED')
+        sys.exit(0)
+    else:
+        print('UPDATING_EXISTING')
+else:
+    print('ADDING_NEW')
+
+# Add/update xray server
+config['mcpServers']['xray'] = new_config
+
+with open('$temp_file', 'w') as f:
+    json.dump(config, f, indent=2)
+" 2>&1)
+        
+        # Handle different scenarios based on Python output
+        if [[ "$python_output" == "ALREADY_CONFIGURED" ]]; then
+            print_success "$ide_name configuration is already up to date"
+            echo "  Config: $config_path"
+            rm -f "$temp_file" 2>/dev/null || true
+            return 0
+        elif [[ "$python_output" == "UPDATING_EXISTING" ]]; then
+            print_info "Updating existing $ide_name 'xray' server configuration..."
+            echo "  Previous configuration will be overwritten"
+        elif [[ "$python_output" == "ADDING_NEW" ]]; then
+            print_info "Adding 'xray' server to existing $ide_name configuration..."
+        else
+            print_info "Updating existing $ide_name config..."
+        fi
+        
+        # Move temp file to final location if Python succeeded
+        if [[ $python_exit_code -eq 0 ]] && [[ -f "$temp_file" ]] && mv "$temp_file" "$config_path"; then
+            print_success "Successfully configured $ide_name"
+            echo "  Config: $config_path"
+            echo "  Restart $ide_name to use the new MCP server"
+        else
+            rm -f "$temp_file" 2>/dev/null || true
+            print_error "Failed to update $ide_name config"
+            echo "Manual config location: $config_path"
+            echo "Add this configuration:"
+            cat << EOF
+{
+  "mcpServers": {
+    "xray": {
+      "command": "$python_cmd",
+      "args": ["$server_path"]
+    }
+  }
+}
+EOF
+        fi
+        
+    else
+        print_info "Creating new $ide_name config..."
+        cat > "$config_path" << EOF
+{
+  "mcpServers": {
+    "xray": {
+      "command": "$python_cmd",
+      "args": ["$server_path"]
+    }
+  }
+}
+EOF
+        
+        if [[ $? -eq 0 ]]; then
+            print_success "Successfully configured $ide_name"
+            echo "  Config: $config_path"
+            echo "  Restart $ide_name to use the new MCP server"
+        else
+            print_error "Failed to create $ide_name config"
+            echo "Manual config location: $config_path"
+            echo "Add this configuration:"
+            cat << EOF
+{
+  "mcpServers": {
+    "xray": {
+      "command": "$python_cmd",
+      "args": ["$server_path"]
+    }
+  }
+}
+EOF
+        fi
+    fi
+}
 
 # Check and update Claude Desktop configuration
 check_claude_desktop_integration() {
     local python_cmd="$1"
     local server_path="$2"
-    
-    # Skip if already configured (check flag)
-    if [[ -f "$DESKTOP_CONFIG_FLAG" ]]; then
-        return 0
-    fi
     
     local config_path=$(get_claude_config_path)
     if [[ -z "$config_path" ]]; then
@@ -412,78 +577,30 @@ check_claude_desktop_integration() {
     echo ""
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "Skipping Claude Desktop integration"
-        touch "$DESKTOP_CONFIG_FLAG"  # Don't ask again
         return 0
     fi
     
-    # Create config directory if it doesn't exist
-    local config_dir=$(dirname "$config_path")
-    mkdir -p "$config_dir" 2>/dev/null || true
+    # Use shared configuration function
+    update_ide_config "Claude Desktop" "$config_path" "$python_cmd" "$server_path"
+}
+
+# Check and update Cursor IDE configuration
+check_cursor_ide_integration() {
+    local python_cmd="$1"
+    local server_path="$2"
     
-    # Handle existing config
-    if [[ -f "$config_path" ]]; then
-        print_info "Updating existing Claude Desktop config..."
-        
-        # Add new config
-        local temp_file=$(mktemp)
-        python3 -c "
-import json
-import sys
-
-try:
-    with open('$config_path', 'r') as f:
-        config = json.load(f)
-except:
-    config = {}
-
-# Ensure mcpServers exists
-if 'mcpServers' not in config:
-    config['mcpServers'] = {}
-
-# Add xray server
-config['mcpServers']['xray'] = {
-    'command': '$python_cmd',
-    'args': ['$server_path']
-}
-
-with open('$temp_file', 'w') as f:
-    json.dump(config, f, indent=2)
-" && mv "$temp_file" "$config_path"
-        
-    else
-        print_info "Creating new Claude Desktop config..."
-        cat > "$config_path" << EOF
-{
-  "mcpServers": {
-    "xray": {
-      "command": "$python_cmd",
-      "args": ["$server_path"]
-    }
-  }
-}
-EOF
+    local config_path=$(get_cursor_config_path)
+    
+    echo ""
+    read -p "Configure Xray MCP for Cursor IDE? (Y/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        print_info "Skipping Cursor IDE integration"
+        return 0
     fi
     
-    if [[ $? -eq 0 ]]; then
-        print_success "Successfully configured Claude Desktop"
-        echo "  Config: $config_path"
-        echo "  Restart Claude Desktop to use the new MCP server"
-        touch "$DESKTOP_CONFIG_FLAG"
-    else
-        print_error "Failed to update Claude Desktop config"
-        echo "Manual config location: $config_path"
-        echo "Add this configuration:"
-        cat << EOF
-{
-  "mcpServers": {
-    "xray": {
-      "command": "$python_cmd",
-      "args": ["$server_path"]
-    }
-  }
-}
-EOF
-    fi
+    # Use shared configuration function
+    update_ide_config "Cursor IDE" "$config_path" "$python_cmd" "$server_path"
 }
 
 # Display configuration instructions
@@ -522,10 +639,30 @@ EOF
     fi
     
     echo ""
-    print_info "2. Restart Claude Desktop after updating the config file"
+    print_info "2. For Cursor IDE:"
+    echo "   Add this configuration to your Cursor IDE config file:"
+    echo ""
+    cat << EOF
+   {
+     "mcpServers": {
+       "xray": {
+         "command": "$python_cmd",
+         "args": ["$server_path"]
+       }
+     }
+   }
+EOF
+    
+    local cursor_config_path=$(get_cursor_config_path)
+    echo ""
+    print_info "   Config file location:"
+    echo -e "   ${YELLOW}$cursor_config_path${NC}"
     echo ""
     
-    print_info "3. For FastMCP CLI:"
+    print_info "3. Restart Claude Desktop/Cursor IDE after updating config files"
+    echo ""
+    
+    print_info "4. For FastMCP CLI:"
     echo -e "   ${GREEN}fastmcp run $server_path:mcp${NC}"
     echo ""
 }
@@ -653,6 +790,9 @@ main() {
     
     # Step 8: Check Claude Desktop integration
     check_claude_desktop_integration "$python_cmd" "$server_path"
+    
+    # Step 9: Check Cursor IDE integration
+    check_cursor_ide_integration "$python_cmd" "$server_path"
     
     echo ""
     echo "To show config: ./run-server.sh -c"
