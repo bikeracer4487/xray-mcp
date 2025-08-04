@@ -78,30 +78,312 @@ async def example():
 asyncio.run(example())
 ```
 
-## Available Tools
+## 🛠️ Available Tools
 
-### Test Management
+The Xray MCP Server provides 14 callable tools organized into three main categories. All tools return structured error responses when exceptions occur: `{"error": "message", "type": "ErrorType"}`.
 
-- **get_test(issue_id)**: Retrieve a single test by issue ID
-- **get_tests(jql, limit)**: Retrieve multiple tests with JQL filtering
-- **get_expanded_test(issue_id, test_version_id)**: Get detailed test information
-- **create_test(project_key, summary, test_type, ...)**: Create a new test
-- **delete_test(issue_id)**: Delete a test
-- **update_test_type(issue_id, test_type)**: Update test type
+### Test Management Tools
 
-### Test Execution Management
+#### get_test
+*Purpose*: Retrieve a single test by issue ID or Jira key with complete information including test type, steps, and Jira fields.
 
-- **get_test_execution(issue_id)**: Retrieve a test execution
-- **get_test_executions(jql, limit)**: Retrieve multiple test executions
-- **create_test_execution(project_key, summary, ...)**: Create a test execution
-- **delete_test_execution(issue_id)**: Delete a test execution
-- **add_tests_to_execution(execution_id, test_ids)**: Add tests to execution
-- **remove_tests_from_execution(execution_id, test_ids)**: Remove tests from execution
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID ("1162822") or key ("TEST-123")
+
+**Returns**: Complete test data including issueId, testType, steps (Manual), gherkin (Cucumber), unstructured (Generic), and jira fields
+
+**Example call**
+```json
+{ "tool": "get_test", "arguments": { "issue_id": "TEST-123" } }
+```
+
+---
+
+#### get_tests
+*Purpose*: Retrieve multiple tests with optional JQL filtering and pagination support.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+jql | string | ❌ | null | JQL query (e.g., "project = PROJ AND status = 'In Progress'")
+limit | integer | ❌ | 100 | Max results (1-100 due to API restrictions)
+
+**Returns**: Paginated results with total, start, limit, and results array containing test objects
+
+**Example call**
+```json
+{ "tool": "get_tests", "arguments": { "jql": "project = 'PROJ' AND labels = 'automated'", "limit": 50 } }
+```
+
+---
+
+#### get_expanded_test
+*Purpose*: Retrieve detailed test information including version support, parent/child relationships, and enhanced metadata.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID or key
+test_version_id | integer | ❌ | null | Specific version ID (null = latest)
+
+**Returns**: Expanded test data including versionId, enhanced steps with relationships, and warnings
+
+**Example call**
+```json
+{ "tool": "get_expanded_test", "arguments": { "issue_id": "TEST-123", "test_version_id": 5 } }
+```
+
+---
+
+#### create_test
+*Purpose*: Create a new test in Xray supporting Manual (with steps), Cucumber (with Gherkin), or Generic (with unstructured content) types.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+project_key | string | ✅ | - | Jira project key (e.g., "PROJ")
+summary | string | ✅ | - | Test title/summary
+test_type | string | ❌ | "Generic" | "Manual", "Cucumber", or "Generic"
+description | string | ❌ | null | Test description in Jira
+steps | array | ❌ | null | For Manual tests: [{"action": "...", "data": "...", "result": "..."}]
+gherkin | string | ❌ | null | For Cucumber tests: Gherkin scenario text
+unstructured | string | ❌ | null | For Generic tests: free-form content
+
+**Returns**: Created test information with test object and warnings array
+
+**Example call**
+```json
+{
+  "tool": "create_test",
+  "arguments": {
+    "project_key": "PROJ",
+    "summary": "Login functionality test",
+    "test_type": "Manual",
+    "description": "Test user login flow",
+    "steps": [
+      {"action": "Navigate to login page", "data": "URL: /login", "result": "Login page displayed"},
+      {"action": "Enter credentials", "data": "user: test@example.com", "result": "User authenticated"}
+    ]
+  }
+}
+```
+
+---
+
+#### delete_test
+*Purpose*: Permanently delete a test and all associated data including steps, execution history, and attachments.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID of test to delete
+
+**Returns**: Deletion result with success boolean and issueId
+
+**Example call**
+```json
+{ "tool": "delete_test", "arguments": { "issue_id": "TEST-123" } }
+```
+
+⚠️ **Warning**: This operation is irreversible.
+
+---
+
+#### update_test_type
+*Purpose*: Change the test type while preserving as much content as possible (may result in data loss if new type doesn't support existing content).
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID of test to update
+test_type | string | ✅ | - | New test type ("Manual", "Cucumber", "Generic")
+
+**Returns**: Updated test object with new type and warnings about potential data loss
+
+**Example call**
+```json
+{ "tool": "update_test_type", "arguments": { "issue_id": "TEST-123", "test_type": "Manual" } }
+```
+
+### Test Execution Management Tools
+
+#### get_test_execution
+*Purpose*: Retrieve a single test execution with its associated tests, test types, and Jira fields.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID of test execution
+
+**Returns**: Test execution data with issueId, tests (paginated list), and jira fields
+
+**Example call**
+```json
+{ "tool": "get_test_execution", "arguments": { "issue_id": "PROJ-200" } }
+```
+
+---
+
+#### get_test_executions
+*Purpose*: Retrieve multiple test executions with optional JQL filtering and pagination.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+jql | string | ❌ | null | JQL query to filter executions
+limit | integer | ❌ | 100 | Max results (1-100)
+
+**Returns**: Paginated results with execution objects including preview of associated tests
+
+**Example call**
+```json
+{ "tool": "get_test_executions", "arguments": { "jql": "project = 'PROJ' AND fixVersion = '1.0'", "limit": 25 } }
+```
+
+---
+
+#### create_test_execution
+*Purpose*: Create a new test execution to group and track multiple test runs for a test cycle, sprint, or release.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+project_key | string | ✅ | - | Jira project key
+summary | string | ✅ | - | Execution title/summary
+test_issue_ids | array | ❌ | null | List of test issue IDs to include
+test_environments | array | ❌ | null | Environment names (auto-created if needed)
+description | string | ❌ | null | Execution description
+
+**Returns**: Created execution with testExecution object, warnings, and createdTestEnvironments
+
+**Example call**
+```json
+{
+  "tool": "create_test_execution",
+  "arguments": {
+    "project_key": "PROJ",
+    "summary": "Sprint 10 Regression Testing",
+    "test_issue_ids": ["PROJ-101", "PROJ-102"],
+    "test_environments": ["Chrome", "Firefox"],
+    "description": "Regression testing for Sprint 10 features"
+  }
+}
+```
+
+---
+
+#### delete_test_execution
+*Purpose*: Permanently delete a test execution and all associated test run data.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+issue_id | string | ✅ | - | Jira issue ID of execution to delete
+
+**Returns**: Deletion result with success boolean and issueId
+
+**Example call**
+```json
+{ "tool": "delete_test_execution", "arguments": { "issue_id": "PROJ-200" } }
+```
+
+⚠️ **Warning**: This operation is irreversible and removes all test run history.
+
+---
+
+#### add_tests_to_execution
+*Purpose*: Add one or more tests to an existing test execution for incremental execution building.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+execution_issue_id | string | ✅ | - | Test execution's Jira issue ID
+test_issue_ids | array | ✅ | - | List of test issue IDs to add
+
+**Returns**: Operation result with addedTests array and warning message
+
+**Example call**
+```json
+{ "tool": "add_tests_to_execution", "arguments": { "execution_issue_id": "PROJ-200", "test_issue_ids": ["PROJ-104", "PROJ-105"] } }
+```
+
+---
+
+#### remove_tests_from_execution
+*Purpose*: Remove one or more tests from an existing test execution (removes execution history for those tests).
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+execution_issue_id | string | ✅ | - | Test execution's Jira issue ID
+test_issue_ids | array | ✅ | - | List of test issue IDs to remove
+
+**Returns**: Operation result with success boolean and executionId
+
+**Example call**
+```json
+{ "tool": "remove_tests_from_execution", "arguments": { "execution_issue_id": "PROJ-200", "test_issue_ids": ["PROJ-101", "PROJ-102"] } }
+```
 
 ### Utility Tools
 
-- **execute_jql_query(jql, entity_type, limit)**: Execute custom JQL queries
-- **validate_connection()**: Test connection and authentication
+#### execute_jql_query
+*Purpose*: Execute custom JQL queries with security validation for different entity types (tests, test executions).
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+jql | string | ✅ | - | JQL query string (validated for security)
+entity_type | string | ❌ | "test" | "test" or "testexecution"
+limit | integer | ❌ | 100 | Max results (1-100)
+
+**Returns**: Query results with total, start, limit, and results array containing entity objects
+
+**Example call**
+```json
+{ "tool": "execute_jql_query", "arguments": { "jql": "project = 'PROJ' AND labels = 'automated'", "entity_type": "test", "limit": 50 } }
+```
+
+---
+
+#### validate_connection
+*Purpose*: Test connection and authentication with Xray API for diagnostics and health checks.
+
+**Parameters** | Type | Required | Default | Notes
+-------------- | ---- | -------- | ------- | -----
+*None* | - | - | - | No parameters required
+
+**Returns**: Connection status with status, message, and authenticated boolean
+
+**Example call**
+```json
+{ "tool": "validate_connection", "arguments": {} }
+```
+
+### Workflow Examples
+
+#### Complete Test Management Workflow
+```json
+// 1. Validate connection
+{ "tool": "validate_connection", "arguments": {} }
+
+// 2. Create a manual test
+{ "tool": "create_test", "arguments": { "project_key": "PROJ", "summary": "User Registration", "test_type": "Manual", "steps": [{"action": "Fill form", "result": "Form submitted"}] } }
+
+// 3. Create test execution
+{ "tool": "create_test_execution", "arguments": { "project_key": "PROJ", "summary": "Sprint Testing", "test_issue_ids": ["PROJ-123"] } }
+
+// 4. Query tests by status
+{ "tool": "get_tests", "arguments": { "jql": "project = PROJ AND status = 'In Progress'", "limit": 25 } }
+```
+
+#### Test Discovery and Analysis
+```json
+// 1. Find all automated tests
+{ "tool": "execute_jql_query", "arguments": { "jql": "project = 'PROJ' AND labels = 'automated'", "entity_type": "test" } }
+
+// 2. Get detailed test information
+{ "tool": "get_expanded_test", "arguments": { "issue_id": "PROJ-123" } }
+
+// 3. Find related test executions
+{ "tool": "get_test_executions", "arguments": { "jql": "project = 'PROJ' AND fixVersion = '2.0'" } }
+```
+
+### Security Notes
+
+- All JQL queries are validated using whitelist-based validation to prevent injection attacks
+- Authentication tokens are automatically refreshed with race condition protection
+- Input validation is performed on all parameters
+- Structured error responses maintain security while providing debugging information
 
 ## Examples
 
