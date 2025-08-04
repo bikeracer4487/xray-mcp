@@ -1,12 +1,11 @@
-"""Test plan management tools for Xray MCP server.
+"""Test set management tools for Xray MCP server.
 
-This module provides functionality for managing test plans in Xray,
-including creating, retrieving, updating, and deleting test plans.
-Test plans are used to organize and track testing activities for releases,
-sprints, or specific features.
+This module provides functionality for managing test sets in Xray,
+including creating, retrieving, updating, and deleting test sets.
+Test sets are collections of tests organized for specific testing purposes.
 
-The TestPlanTools class serves as the main interface for interacting
-with Xray's test plan API through GraphQL queries and mutations.
+The TestSetTools class serves as the main interface for interacting
+with Xray's test set API through GraphQL queries and mutations.
 """
 
 from typing import Dict, Any, List, Optional
@@ -21,48 +20,48 @@ except ImportError:
     from validators import validate_jql
 
 
-class TestPlanTools:
-    """Tools for managing test plans in Xray.
+class TestSetTools:
+    """Tools for managing test sets in Xray.
     
-    This class provides methods to interact with test plans, which are containers
-    that group tests for planning and tracking purposes. Test plans help organize
-    testing activities by release, sprint, feature, or any other logical grouping.
+    This class provides methods to interact with test sets, which are collections
+    of tests that can be organized for specific testing scenarios, releases, or
+    functional areas. Test sets help organize and group related tests.
     
     Attributes:
         client (XrayGraphQLClient): GraphQL client for API communication
     
     Dependencies:
         - Requires authenticated XrayGraphQLClient instance
-        - Depends on Xray GraphQL API for test plan operations
+        - Depends on Xray GraphQL API for test set operations
     
     Note:
         All methods return structured dictionaries compatible with MCP responses.
         Errors are propagated to calling code for centralized error handling.
     """
     
-    def __init__(self, graphql_client: XrayGraphQLClient):
-        """Initialize test plan tools with GraphQL client.
+    def __init__(self, client: XrayGraphQLClient):
+        """Initialize test set tools with GraphQL client.
         
         Args:
-            graphql_client (XrayGraphQLClient): Authenticated GraphQL client instance
+            client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
-        self.client = graphql_client
+        self.client = client
     
-    async def get_test_plan(self, issue_id: str) -> Dict[str, Any]:
-        """Retrieve a single test plan by issue ID.
+    async def get_test_set(self, issue_id: str) -> Dict[str, Any]:
+        """Retrieve a single test set by issue ID.
         
-        Fetches detailed information about a specific test plan including
+        Fetches detailed information about a specific test set including
         its associated tests, metadata, and current status.
         
         Args:
-            issue_id: The Jira issue ID of the test plan
+            issue_id: The Jira issue ID of the test set
         
         Returns:
             Dict containing:
-                - issueId: Test plan issue ID
+                - issueId: Test set issue ID
                 - projectId: Project ID
-                - summary: Test plan title
-                - description: Test plan description
+                - summary: Test set title
+                - description: Test set description
                 - tests: Associated tests
                 - status: Current status
                 - created: Creation timestamp
@@ -73,8 +72,8 @@ class TestPlanTools:
             GraphQLError: If the GraphQL query fails
         """
         query = """
-        query GetTestPlan($issueId: String!) {
-            getTestPlan(issueId: $issueId) {
+        query GetTestSet($issueId: String!) {
+            getTestSet(issueId: $issueId) {
                 issueId
                 projectId
                 summary
@@ -108,28 +107,28 @@ class TestPlanTools:
         
         variables = {"issueId": issue_id}
         result = await self.client.execute_query(query, variables)
-        return result.get("data", {}).get("getTestPlan", {})
+        return result.get("data", {}).get("getTestSet", {})
     
-    async def get_test_plans(
+    async def get_test_sets(
         self, 
         jql: Optional[str] = None, 
         limit: int = 100
     ) -> Dict[str, Any]:
-        """Retrieve multiple test plans with optional JQL filtering.
+        """Retrieve multiple test sets with optional JQL filtering.
         
-        Searches for test plans matching the specified criteria. Supports
+        Searches for test sets matching the specified criteria. Supports
         pagination and JQL-based filtering for precise result sets.
         
         Args:
-            jql: Optional JQL query to filter test plans
-            limit: Maximum number of test plans to return (max 100)
+            jql: Optional JQL query to filter test sets
+            limit: Maximum number of test sets to return (max 100)
         
         Returns:
             Dict containing:
-                - total: Total number of matching test plans
+                - total: Total number of matching test sets
                 - start: Starting index of results
                 - limit: Number of results requested
-                - results: List of test plan objects
+                - results: List of test set objects
         
         Raises:
             ValidationError: If JQL is invalid or limit exceeds 100
@@ -142,8 +141,8 @@ class TestPlanTools:
             validate_jql(jql)
         
         query = """
-        query GetTestPlans($jql: String, $limit: Int!) {
-            getTestPlans(jql: $jql, limit: $limit) {
+        query GetTestSets($jql: String, $limit: Int!) {
+            getTestSets(jql: $jql, limit: $limit) {
                 total
                 start
                 limit
@@ -174,29 +173,29 @@ class TestPlanTools:
         }
         
         result = await self.client.execute_query(query, variables)
-        return result.get("data", {}).get("getTestPlans", {})
+        return result.get("data", {}).get("getTestSets", {})
     
-    async def create_test_plan(
+    async def create_test_set(
         self,
         project_key: str,
         summary: str,
         test_issue_ids: Optional[List[str]] = None,
         description: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Create a new test plan in Xray.
+        """Create a new test set in Xray.
         
-        Creates a test plan issue in Jira and optionally associates it with
-        specified tests. Test plans help organize related tests for planning.
+        Creates a test set issue in Jira and optionally associates it with
+        specified tests. Test sets help organize related tests for execution.
         
         Args:
-            project_key: Jira project key where the test plan will be created
-            summary: Test plan title/summary
+            project_key: Jira project key where the test set will be created
+            summary: Test set title/summary
             test_issue_ids: Optional list of test issue IDs to include
             description: Optional detailed description
         
         Returns:
             Dict containing:
-                - testPlan: Created test plan object with issue ID and key
+                - testSet: Created test set object with issue ID and key
                 - addedTests: List of successfully added tests
                 - warnings: Any warnings from the operation
         
@@ -205,9 +204,9 @@ class TestPlanTools:
             GraphQLError: If the GraphQL mutation fails
         """
         mutation = """
-        mutation CreateTestPlan($projectKey: String!, $summary: String!, $description: String) {
-            createTestPlan(projectKey: $projectKey, summary: $summary, description: $description) {
-                testPlan {
+        mutation CreateTestSet($projectKey: String!, $summary: String!, $description: String, $testIssueIds: [String!]) {
+            createTestSet(projectKey: $projectKey, summary: $summary, description: $description) {
+                testSet {
                     issueId
                     jira(fields: "key,summary")
                     summary
@@ -222,32 +221,33 @@ class TestPlanTools:
         variables = {
             "projectKey": project_key,
             "summary": summary,
-            "description": description
+            "description": description,
+            "testIssueIds": test_issue_ids or []
         }
         
         result = await self.client.execute_query(mutation, variables)
-        create_result = result.get("data", {}).get("createTestPlan", {})
+        create_result = result.get("data", {}).get("createTestSet", {})
         
-        # If tests were specified, add them to the created test plan
-        if test_issue_ids and create_result.get("testPlan", {}).get("issueId"):
-            test_plan_id = create_result["testPlan"]["issueId"]
-            add_result = await self.add_tests_to_plan(test_plan_id, test_issue_ids)
+        # If tests were specified, add them to the created test set
+        if test_issue_ids and create_result.get("testSet", {}).get("issueId"):
+            test_set_id = create_result["testSet"]["issueId"]
+            add_result = await self.add_tests_to_set(test_set_id, test_issue_ids)
             create_result["addedTests"] = add_result.get("addedTests", [])
         
         return create_result
     
-    async def update_test_plan(
+    async def update_test_set(
         self, 
         issue_id: str, 
         updates: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Update an existing test plan.
+        """Update an existing test set.
         
-        Modifies the properties of an existing test plan. Supports updating
-        summary, description, and other test plan attributes.
+        Modifies the properties of an existing test set. Supports updating
+        summary, description, and other test set attributes.
         
         Args:
-            issue_id: The Jira issue ID of the test plan to update
+            issue_id: The Jira issue ID of the test set to update
             updates: Dictionary containing fields to update:
                 - summary: New summary/title
                 - description: New description
@@ -255,7 +255,7 @@ class TestPlanTools:
         
         Returns:
             Dict containing:
-                - testPlan: Updated test plan object
+                - testSet: Updated test set object
                 - success: Boolean indicating operation success
         
         Raises:
@@ -263,9 +263,9 @@ class TestPlanTools:
             GraphQLError: If the GraphQL mutation fails
         """
         mutation = """
-        mutation UpdateTestPlan($issueId: String!, $updates: UpdateTestPlanInput!) {
-            updateTestPlan(issueId: $issueId, testPlan: $updates) {
-                testPlan {
+        mutation UpdateTestSet($issueId: String!, $updates: UpdateTestSetInput!) {
+            updateTestSet(issueId: $issueId, testSet: $updates) {
+                testSet {
                     issueId
                     summary
                     description
@@ -282,29 +282,29 @@ class TestPlanTools:
         }
         
         result = await self.client.execute_query(mutation, variables)
-        return result.get("data", {}).get("updateTestPlan", {})
+        return result.get("data", {}).get("updateTestSet", {})
     
-    async def delete_test_plan(self, issue_id: str) -> Dict[str, Any]:
-        """Delete a test plan from Xray.
+    async def delete_test_set(self, issue_id: str) -> Dict[str, Any]:
+        """Delete a test set from Xray.
         
-        Removes the test plan issue from Jira. This operation does not affect
-        the individual tests that were associated with the test plan.
+        Removes the test set issue from Jira. This operation does not affect
+        the individual tests that were associated with the test set.
         
         Args:
-            issue_id: The Jira issue ID of the test plan to delete
+            issue_id: The Jira issue ID of the test set to delete
         
         Returns:
             Dict containing:
                 - success: Boolean indicating successful deletion
-                - deletedTestPlanId: ID of the deleted test plan
+                - deletedTestSetId: ID of the deleted test set
         
         Raises:
             ValidationError: If issue_id is invalid
             GraphQLError: If the GraphQL mutation fails
         """
         mutation = """
-        mutation DeleteTestPlan($issueId: String!) {
-            deleteTestPlan(issueId: $issueId) {
+        mutation DeleteTestSet($issueId: String!) {
+            deleteTestSet(issueId: $issueId) {
                 success
             }
         }
@@ -314,23 +314,23 @@ class TestPlanTools:
         result = await self.client.execute_query(mutation, variables)
         
         return {
-            "success": result.get("data", {}).get("deleteTestPlan", {}).get("success", False),
-            "deletedTestPlanId": issue_id
+            "success": result.get("data", {}).get("deleteTestSet", {}).get("success", False),
+            "deletedTestSetId": issue_id
         }
     
-    async def add_tests_to_plan(
+    async def add_tests_to_set(
         self, 
         issue_id: str, 
         test_issue_ids: List[str]
     ) -> Dict[str, Any]:
-        """Add tests to an existing test plan.
+        """Add tests to an existing test set.
         
-        Associates specified tests with a test plan. Tests can belong to
-        multiple test plans simultaneously.
+        Associates specified tests with a test set. Tests can belong to
+        multiple test sets simultaneously.
         
         Args:
-            issue_id: The Jira issue ID of the test plan
-            test_issue_ids: List of test issue IDs to add to the test plan
+            issue_id: The Jira issue ID of the test set
+            test_issue_ids: List of test issue IDs to add to the test set
         
         Returns:
             Dict containing:
@@ -345,8 +345,8 @@ class TestPlanTools:
             raise ValidationError("test_issue_ids cannot be empty")
         
         mutation = """
-        mutation AddTestsToTestPlan($issueId: String!, $testIssueIds: [String!]!) {
-            addTestsToTestPlan(issueId: $issueId, testIssueIds: $testIssueIds) {
+        mutation AddTestsToTestSet($issueId: String!, $testIssueIds: [String!]!) {
+            addTestsToTestSet(issueId: $issueId, testIssueIds: $testIssueIds) {
                 addedTests {
                     issueId
                     summary
@@ -365,21 +365,21 @@ class TestPlanTools:
         }
         
         result = await self.client.execute_query(mutation, variables)
-        return result.get("data", {}).get("addTestsToTestPlan", {})
+        return result.get("data", {}).get("addTestsToTestSet", {})
     
-    async def remove_tests_from_plan(
+    async def remove_tests_from_set(
         self, 
         issue_id: str, 
         test_issue_ids: List[str]
     ) -> Dict[str, Any]:
-        """Remove tests from an existing test plan.
+        """Remove tests from an existing test set.
         
-        Disassociates specified tests from a test plan. The tests themselves
-        are not deleted, only their association with the test plan.
+        Disassociates specified tests from a test set. The tests themselves
+        are not deleted, only their association with the test set.
         
         Args:
-            issue_id: The Jira issue ID of the test plan
-            test_issue_ids: List of test issue IDs to remove from the test plan
+            issue_id: The Jira issue ID of the test set
+            test_issue_ids: List of test issue IDs to remove from the test set
         
         Returns:
             Dict containing:
@@ -394,8 +394,8 @@ class TestPlanTools:
             raise ValidationError("test_issue_ids cannot be empty")
         
         mutation = """
-        mutation RemoveTestsFromTestPlan($issueId: String!, $testIssueIds: [String!]!) {
-            removeTestsFromTestPlan(issueId: $issueId, testIssueIds: $testIssueIds) {
+        mutation RemoveTestsFromTestSet($issueId: String!, $testIssueIds: [String!]!) {
+            removeTestsFromTestSet(issueId: $issueId, testIssueIds: $testIssueIds) {
                 removedTests
                 success
             }
@@ -408,5 +408,4 @@ class TestPlanTools:
         }
         
         result = await self.client.execute_query(mutation, variables)
-        return result.get("data", {}).get("removeTestsFromTestPlan", {})
-
+        return result.get("data", {}).get("removeTestsFromTestSet", {})
