@@ -477,7 +477,7 @@ class TestTools:
 
             # Based on actual createTest GraphQL schema from documentation
             mutation = """
-            mutation CreateTest($testType: UpdateTestTypeInput!, $steps: [CreateStepInput!]!, $jira: JSON!) {
+            mutation CreateTest($testType: UpdateTestTypeInput!, $steps: [CreateStepInput!], $jira: JSON!) {
                 createTest(testType: $testType, steps: $steps, jira: $jira) {
                     test {
                         issueId
@@ -585,16 +585,29 @@ class TestTools:
         if "data" in result and "createTest" in result["data"]:
             return result["data"]["createTest"]
         else:
-            raise GraphQLError("Failed to create test")
+            # Provide more detailed error context for test creation failures
+            error_msg = "Failed to create test"
+            if "errors" in result:
+                error_details = result["errors"]
+                if any("validation" in str(error).lower() for error in error_details):
+                    if test_type.lower() == "manual" and steps:
+                        error_msg += f". Manual test with {len(steps)} steps failed validation. " \
+                                   "Ensure each step has 'action' and 'result' fields. " \
+                                   "Example: {{'action': 'Navigate to page', 'result': 'Page loads', 'data': 'Optional data'}}"
+                    else:
+                        error_msg += f". Validation error for {test_type} test."
+                error_msg += f" GraphQL errors: {error_details}"
+            raise GraphQLError(error_msg)
 
     async def delete_test(self, issue_id: str) -> Dict[str, Any]:
         """Delete a test from Xray.
 
         Permanently deletes a test and all its associated data including
-        steps, executions history, and attachments.
+        steps, executions history, and attachments. Accepts both
+        numeric issue IDs and Jira keys for convenience.
 
         Args:
-            issue_id (str): Jira issue ID of the test to delete
+            issue_id (str): Jira issue ID or key (e.g., "1162822" or "TEST-123")
 
         Returns:
             Dict[str, Any]: Deletion result containing:
@@ -616,23 +629,34 @@ class TestTools:
         }
         """
 
-        variables = {"issueId": issue_id}
+        # Resolve the identifier to a numeric issue ID
+        resolved_id = await self._resolve_issue_id(issue_id)
+
+        variables = {"issueId": resolved_id}
         result = await self.client.execute_mutation(mutation, variables)
 
         if "data" in result and "deleteTest" in result["data"]:
-            return {"success": result["data"]["deleteTest"], "issueId": issue_id}
+            return {"success": result["data"]["deleteTest"], "issueId": resolved_id}
         else:
-            raise GraphQLError(f"Failed to delete test {issue_id}")
+            # Provide more context for deletion failures
+            error_msg = f"Failed to delete test {issue_id}"
+            if "errors" in result:
+                error_details = result["errors"]
+                if any("not found" in str(error).lower() for error in error_details):
+                    error_msg += f". Test with ID/key '{issue_id}' not found. Verify the test exists and you have permission to delete it."
+                error_msg += f" GraphQL errors: {error_details}"
+            raise GraphQLError(error_msg)
 
     async def update_test_type(self, issue_id: str, test_type: str) -> Dict[str, Any]:
         """Update the test type of an existing test.
 
         Changes the test type while preserving as much content as possible.
         Note that changing test types may result in data loss if the new
-        type doesn't support the existing content format.
+        type doesn't support the existing content format. Accepts both
+        numeric issue IDs and Jira keys for convenience.
 
         Args:
-            issue_id (str): Jira issue ID of the test to update
+            issue_id (str): Jira issue ID or key (e.g., "1162822" or "TEST-123")
             test_type (str): New test type ("Manual", "Cucumber", or "Generic")
 
         Returns:
@@ -669,11 +693,21 @@ class TestTools:
         }
         """
 
-        variables = {"issueId": issue_id, "testType": {"name": test_type}}
+        # Resolve the identifier to a numeric issue ID
+        resolved_id = await self._resolve_issue_id(issue_id)
+
+        variables = {"issueId": resolved_id, "testType": {"name": test_type}}
 
         result = await self.client.execute_mutation(mutation, variables)
 
         if "data" in result and "updateTestType" in result["data"]:
             return result["data"]["updateTestType"]
         else:
-            raise GraphQLError(f"Failed to update test type for {issue_id}")
+            # Provide more context for update failures
+            error_msg = f"Failed to update test type for {issue_id}"
+            if "errors" in result:
+                error_details = result["errors"]
+                if any("not valid" in str(error).lower() for error in error_details):
+                    error_msg += f". Issue ID/key '{issue_id}' is not valid. Ensure the test exists and use either numeric ID (e.g., '1162822') or Jira key (e.g., 'TEST-123')."
+                error_msg += f" GraphQL errors: {error_details}"
+            raise GraphQLError(error_msg)

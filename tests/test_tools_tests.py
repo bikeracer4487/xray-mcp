@@ -475,3 +475,327 @@ class TestTestTools:
         # Verify version parameter was passed
         args = mock_client.execute_query.call_args
         assert args[0][1]["versionId"] == 2
+
+    # ============================================================================
+    # NEW TESTS FOR QA FIXES - ID FORMAT CONSISTENCY
+    # ============================================================================
+
+    @pytest.mark.asyncio
+    async def test_resolve_issue_id_numeric(self, test_tools):
+        """Test _resolve_issue_id with numeric ID (should return as-is)."""
+        result = await test_tools._resolve_issue_id("1162822")
+        assert result == "1162822"
+
+    @pytest.mark.asyncio
+    async def test_resolve_issue_id_jira_key(self, test_tools, mock_client):
+        """Test _resolve_issue_id with Jira key (should resolve to numeric ID)."""
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTests": {
+                    "results": [
+                        {
+                            "issueId": "1162822",
+                            "jira": {"key": "FRAMED-1693"}
+                        }
+                    ]
+                }
+            }
+        }
+        
+        result = await test_tools._resolve_issue_id("FRAMED-1693")
+        assert result == "1162822"
+        
+        # Verify JQL query was used correctly
+        mock_client.execute_query.assert_called_once()
+        args = mock_client.execute_query.call_args
+        assert 'key = "FRAMED-1693"' in args[0][1]["jql"]
+
+    @pytest.mark.asyncio
+    async def test_resolve_issue_id_jira_key_not_found(self, test_tools, mock_client):
+        """Test _resolve_issue_id when Jira key cannot be resolved."""
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTests": {
+                    "results": []
+                }
+            }
+        }
+        
+        with pytest.raises(GraphQLError) as exc_info:
+            await test_tools._resolve_issue_id("NONEXISTENT-123")
+        
+        assert "Could not resolve Jira key NONEXISTENT-123" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_delete_test_with_jira_key(self, test_tools, mock_client):
+        """Test delete_test with Jira key (should resolve to numeric ID first)."""
+        # Mock the resolution query
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTests": {
+                    "results": [
+                        {
+                            "issueId": "1162822", 
+                            "jira": {"key": "FRAMED-1693"}
+                        }
+                    ]
+                }
+            }
+        }
+        
+        # Mock the deletion mutation
+        mock_client.execute_mutation.return_value = {
+            "data": {"deleteTest": True}
+        }
+        
+        result = await test_tools.delete_test("FRAMED-1693")
+        
+        assert result["success"] is True
+        assert result["issueId"] == "1162822"  # Should return resolved numeric ID
+        
+        # Verify both resolution query and deletion mutation were called
+        assert mock_client.execute_query.call_count == 1
+        assert mock_client.execute_mutation.call_count == 1
+        
+        # Verify deletion used resolved numeric ID
+        mutation_args = mock_client.execute_mutation.call_args
+        assert mutation_args[0][1]["issueId"] == "1162822"
+
+    @pytest.mark.asyncio
+    async def test_delete_test_with_numeric_id(self, test_tools, mock_client):
+        """Test delete_test with numeric ID (should not need resolution)."""
+        mock_client.execute_mutation.return_value = {
+            "data": {"deleteTest": True}
+        }
+        
+        result = await test_tools.delete_test("1162822")
+        
+        assert result["success"] is True
+        assert result["issueId"] == "1162822"
+        
+        # Should only call mutation, not resolution query
+        assert mock_client.execute_query.call_count == 0
+        assert mock_client.execute_mutation.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_update_test_type_with_jira_key(self, test_tools, mock_client):
+        """Test update_test_type with Jira key (should resolve to numeric ID first)."""
+        # Mock the resolution query
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTests": {
+                    "results": [
+                        {
+                            "issueId": "1162822",
+                            "jira": {"key": "FRAMED-1693"}
+                        }
+                    ]
+                }
+            }
+        }
+        
+        # Mock the update mutation
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "updateTestType": {
+                    "issueId": "1162822",
+                    "testType": {"name": "Manual", "kind": "Steps"}
+                }
+            }
+        }
+        
+        result = await test_tools.update_test_type("FRAMED-1693", "Manual")
+        
+        assert result["issueId"] == "1162822"
+        assert result["testType"]["name"] == "Manual"
+        
+        # Verify both resolution query and update mutation were called
+        assert mock_client.execute_query.call_count == 1
+        assert mock_client.execute_mutation.call_count == 1
+        
+        # Verify update used resolved numeric ID
+        mutation_args = mock_client.execute_mutation.call_args
+        assert mutation_args[0][1]["issueId"] == "1162822"
+
+    @pytest.mark.asyncio
+    async def test_update_test_type_with_numeric_id(self, test_tools, mock_client):
+        """Test update_test_type with numeric ID (should not need resolution)."""
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "updateTestType": {
+                    "issueId": "1162822",
+                    "testType": {"name": "Manual", "kind": "Steps"}
+                }
+            }
+        }
+        
+        result = await test_tools.update_test_type("1162822", "Manual")
+        
+        assert result["issueId"] == "1162822"
+        assert result["testType"]["name"] == "Manual"
+        
+        # Should only call mutation, not resolution query
+        assert mock_client.execute_query.call_count == 0
+        assert mock_client.execute_mutation.call_count == 1
+
+    # ============================================================================
+    # NEW TESTS FOR MANUAL TEST STEPS VALIDATION
+    # ============================================================================
+
+    @pytest.mark.asyncio
+    async def test_create_manual_test_with_steps_success(self, test_tools, mock_client):
+        """Test creating Manual test with steps (fixed validation)."""
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "createTest": {
+                    "test": {
+                        "issueId": "1163175",
+                        "testType": {"name": "Manual"},
+                        "steps": [
+                            {
+                                "action": "Navigate to login page",
+                                "data": "URL: https://example.com/login",
+                                "result": "Login page should be displayed"
+                            }
+                        ],
+                        "jira": {"key": "FRAMED-1694", "summary": "Manual Test with Steps"}
+                    },
+                    "warnings": []
+                }
+            }
+        }
+        
+        steps = [
+            {
+                "action": "Navigate to login page",
+                "data": "URL: https://example.com/login",
+                "result": "Login page should be displayed"
+            }
+        ]
+        
+        result = await test_tools.create_test(
+            project_key="FRAMED",
+            summary="Manual Test with Steps",
+            test_type="Manual",
+            steps=steps
+        )
+        
+        assert result["test"]["testType"]["name"] == "Manual"
+        assert len(result["test"]["steps"]) == 1
+        assert result["test"]["steps"][0]["action"] == "Navigate to login page"
+        
+        # Verify mutation used optional steps parameter (not required)
+        mutation_args = mock_client.execute_mutation.call_args
+        mutation_query = mutation_args[0][0]
+        # Should use optional parameter syntax: $steps: [CreateStepInput!]
+        # NOT required syntax: $steps: [CreateStepInput!]!
+        assert "$steps: [CreateStepInput!]" in mutation_query
+        assert "$steps: [CreateStepInput!]!" not in mutation_query
+
+    @pytest.mark.asyncio
+    async def test_create_manual_test_with_teststep_objects(self, test_tools, mock_client):
+        """Test creating Manual test with TestStep objects."""
+        mock_client.execute_mutation.return_value = {
+            "data": {
+                "createTest": {
+                    "test": {
+                        "issueId": "1163175",
+                        "testType": {"name": "Manual"},
+                        "steps": [
+                            {
+                                "action": "Navigate to page",
+                                "data": "URL: /test",
+                                "result": "Page loads"
+                            }
+                        ],
+                        "jira": {"key": "TEST-123", "summary": "Manual Test"}
+                    },
+                    "warnings": []
+                }
+            }
+        }
+        
+        steps = [
+            TestStep(
+                action="Navigate to page",
+                data="URL: /test",
+                result="Page loads"
+            )
+        ]
+        
+        result = await test_tools.create_test(
+            project_key="TEST",
+            summary="Manual Test",
+            test_type="Manual",
+            steps=steps
+        )
+        
+        assert result["test"]["testType"]["name"] == "Manual"
+        assert len(result["test"]["steps"]) == 1
+
+    # ============================================================================
+    # NEW TESTS FOR IMPROVED ERROR HANDLING
+    # ============================================================================
+
+    @pytest.mark.asyncio
+    async def test_create_test_validation_error_with_context(self, test_tools, mock_client):
+        """Test improved error messages for validation failures."""
+        mock_client.execute_mutation.return_value = {
+            "errors": [
+                {"message": "Input validation error: '[JSON_ARRAY]' is not valid under any of the given schemas"}
+            ]
+        }
+        
+        steps = [
+            {
+                "action": "Navigate to login page",
+                "result": "Login page should be displayed"
+            }
+        ]
+        
+        with pytest.raises(GraphQLError) as exc_info:
+            await test_tools.create_test(
+                project_key="FRAMED",
+                summary="Manual Test",
+                test_type="Manual",
+                steps=steps
+            )
+        
+        error_message = str(exc_info.value)
+        assert "Manual test with 1 steps failed validation" in error_message
+        assert "Ensure each step has 'action' and 'result' fields" in error_message
+        assert "Example:" in error_message
+
+    @pytest.mark.asyncio
+    async def test_delete_test_not_found_error_with_context(self, test_tools, mock_client):
+        """Test improved error messages for deletion failures."""
+        mock_client.execute_mutation.return_value = {
+            "errors": [
+                {"message": "test with id FRAMED-1694 not found!"}
+            ]
+        }
+        
+        with pytest.raises(GraphQLError) as exc_info:
+            await test_tools.delete_test("1162822")
+        
+        error_message = str(exc_info.value)
+        assert "Failed to delete test 1162822" in error_message
+        assert "Test with ID/key '1162822' not found" in error_message
+        assert "Verify the test exists and you have permission" in error_message
+
+    @pytest.mark.asyncio
+    async def test_update_test_type_invalid_id_error_with_context(self, test_tools, mock_client):
+        """Test improved error messages for update failures."""
+        mock_client.execute_mutation.return_value = {
+            "errors": [
+                {"message": "issueId provided is not valid"}
+            ]
+        }
+        
+        with pytest.raises(GraphQLError) as exc_info:
+            await test_tools.update_test_type("1162822", "Manual")
+        
+        error_message = str(exc_info.value)
+        assert "Failed to update test type for 1162822" in error_message
+        assert "Issue ID/key '1162822' is not valid" in error_message
+        assert "Ensure the test exists and use either numeric ID" in error_message
