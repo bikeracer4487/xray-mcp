@@ -14,9 +14,11 @@ from typing import Dict, Any, List, Optional
 try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
+    from utils import IssueIdResolver
 
 
 class TestVersioningTools:
@@ -45,6 +47,7 @@ class TestVersioningTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def get_test_versions(self, issue_id: str) -> Dict[str, Any]:
         """Retrieve all versions of a test.
@@ -97,7 +100,9 @@ class TestVersioningTools:
         }
         """
 
-        variables = {"issueId": issue_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id}
         result = await self.client.execute_query(query, variables)
         test_data = result.get("data", {}).get("getTest", {})
         test_versions_data = test_data.get("testVersions", {})
@@ -138,7 +143,9 @@ class TestVersioningTools:
         }
         """
 
-        variables = {"issueId": issue_id, "versionId": version_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id, "versionId": version_id}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("archiveTestVersion", {})
@@ -187,13 +194,15 @@ class TestVersioningTools:
         }
         """
 
-        variables = {"issueId": issue_id, "versionId": version_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_restore_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_restore_id, "versionId": version_id}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("restoreTestVersion", {})
 
     async def create_test_version_from(
-        self, issue_id: str, version_id: int
+        self, issue_id: str, source_version_id: int, version_name: str
     ) -> Dict[str, Any]:
         """Create a new version from an existing version.
 
@@ -202,7 +211,8 @@ class TestVersioningTools:
 
         Args:
             issue_id: The Jira issue ID of the test
-            version_id: The version ID to use as the source
+            source_version_id: The version ID to use as the source
+            version_name: Name for the new version
 
         Returns:
             Dict containing:
@@ -211,12 +221,12 @@ class TestVersioningTools:
                 - sourceVersion: Details of the source version used with id, name, default status
 
         Raises:
-            ValidationError: If issue_id or version_id is invalid
+            ValidationError: If issue_id or source_version_id is invalid
             GraphQLError: If the GraphQL mutation fails
         """
         mutation = """
-        mutation CreateTestVersionFrom($issueId: String!, $sourceVersionId: Int!) {
-            createTestVersionFrom(issueId: $issueId, sourceVersionId: $sourceVersionId) {
+        mutation CreateTestVersionFrom($issueId: String!, $sourceVersionId: Int!, $versionName: String) {
+            createTestVersionFrom(issueId: $issueId, sourceVersionId: $sourceVersionId, versionName: $versionName) {
                 success
                 newVersion {
                     id
@@ -237,7 +247,9 @@ class TestVersioningTools:
         }
         """
 
-        variables = {"issueId": issue_id, "sourceVersionId": version_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_create_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_create_id, "sourceVersionId": source_version_id, "versionName": version_name}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("createTestVersionFrom", {})

@@ -4,7 +4,7 @@ import asyncio
 import logging
 import sys
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 # Path manipulation for direct execution support
 # Ensures imports work when running as: python main.py
@@ -338,7 +338,7 @@ class XrayMCPServer:
             summary: str,
             test_type: str = "Generic",
             description: Optional[str] = None,
-            steps: Optional[List[Dict[str, str]]] = None,
+            steps: Optional[Union[str, List[Dict[str, str]]]] = None,
             gherkin: Optional[str] = None,
             unstructured: Optional[str] = None,
         ) -> Dict[str, Any]:
@@ -357,6 +357,14 @@ class XrayMCPServer:
                 Created test information including issue ID and key
             """
             try:
+                # Handle steps parameter when passed as JSON string
+                if steps is not None and isinstance(steps, str):
+                    import json
+                    try:
+                        steps = json.loads(steps)
+                    except json.JSONDecodeError as e:
+                        return {"error": f"Invalid JSON in steps parameter: {str(e)}", "type": "JSONDecodeError"}
+                
                 return await self.test_tools.create_test(
                     project_key,
                     summary,
@@ -385,8 +393,44 @@ class XrayMCPServer:
                 return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
+        async def update_test(
+            issue_id: str,
+            test_type: Optional[str] = None,
+            gherkin: Optional[str] = None,
+            unstructured: Optional[str] = None,
+            steps: Optional[List[Dict[str, str]]] = None,
+            jira_fields: Optional[Dict[str, Any]] = None,
+            version_id: Optional[int] = None,
+        ) -> Dict[str, Any]:
+            """Update various aspects of an existing test.
+
+            Comprehensive test update method that can modify test type, content,
+            steps, and Jira fields in a single operation.
+
+            Args:
+                issue_id: Jira issue ID or key (e.g., "1162822" or "TEST-123")
+                test_type: New test type ("Manual", "Cucumber", "Generic")
+                gherkin: New Gherkin scenario (for Cucumber tests)
+                unstructured: New unstructured content (for Generic tests)
+                steps: New test steps (for Manual tests)
+                jira_fields: Jira fields to update (e.g., {"summary": "New title"})
+                version_id: Specific test version to update
+
+            Returns:
+                Combined update results with success status, updated fields, and warnings
+            """
+            try:
+                return await self.test_tools.update_test(
+                    issue_id, test_type, gherkin, unstructured, steps, jira_fields, version_id
+                )
+            except Exception as e:
+                return {"error": str(e), "type": type(e).__name__}
+
+        @self.mcp.tool()
         async def update_test_type(issue_id: str, test_type: str) -> Dict[str, Any]:
             """Update the test type of an existing test.
+
+            DEPRECATED: Use update_test() instead for more comprehensive updates.
 
             Args:
                 issue_id: The Jira issue ID of the test
@@ -1225,7 +1269,7 @@ class XrayMCPServer:
                 test_issue_id: The test issue ID to retrieve dataset for
 
             Returns:
-                Dataset details including parameters, data, and associated context
+                Dict with 'dataset' (object or None) and 'found' (boolean)
             """
             try:
                 return await self.organization_tools.get_dataset(test_issue_id)
@@ -1240,7 +1284,7 @@ class XrayMCPServer:
                 test_issue_ids: List of test issue IDs to retrieve datasets for
 
             Returns:
-                List of dataset objects with parameters and data rows
+                Dict with 'datasets' key containing list of dataset objects
             """
             try:
                 return await self.organization_tools.get_datasets(test_issue_ids)

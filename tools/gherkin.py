@@ -13,9 +13,11 @@ from typing import Dict, Any
 try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
+    from utils import IssueIdResolver
 
 
 class GherkinTools:
@@ -44,6 +46,7 @@ class GherkinTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def update_gherkin_definition(
         self, issue_id: str, gherkin_text: str
@@ -94,7 +97,9 @@ class GherkinTools:
         }
         """
 
-        variables = {"issueId": issue_id, "gherkinText": gherkin_text}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id, "gherkinText": gherkin_text}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("updateGherkinTestDefinition", {})

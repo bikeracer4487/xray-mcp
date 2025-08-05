@@ -110,6 +110,15 @@ Test your setup with the validation tool:
 
 The server currently provides 48 MCP tools organized into 12 categories for comprehensive Xray test management. All tools return structured error responses: `{"error": "message", "type": "ErrorType"}`.
 
+### 🔗 ID Format Support
+
+All tools that accept `issue_id` parameters support **both Jira keys and numeric IDs** for maximum flexibility:
+
+- **Jira Keys**: Human-readable format like `"PROJ-123"`, `"TEST-456"`
+- **Numeric IDs**: Internal Xray IDs like `"1162822"`, `"1163247"`
+
+The server automatically resolves Jira keys to internal IDs using the centralized `IssueIdResolver`, ensuring consistent behavior across all operations. This means you can use whichever format is more convenient for your workflow.
+
 ### Test Management Tools (6)
 
 | Tool | Purpose | Parameters | Type | Req? | Notes |
@@ -123,7 +132,7 @@ The server currently provides 48 MCP tools organized into 12 categories for comp
 | | | `summary` | string | ✅ | Test title/summary |
 | | | `test_type` | string | ❌ | Generic (default), Manual, Cucumber |
 | | | `description` | string | ❌ | Test description |
-| | | `steps` | List[Dict] | ❌ | Manual test steps (action, data, result) |
+| | | `steps` | List[Dict] | ❌ | Manual test steps (see format below) |
 | | | `gherkin` | string | ❌ | Gherkin scenario for Cucumber |
 | | | `unstructured` | string | ❌ | Unstructured definition for Generic |
 | **delete_test** | Permanently delete test | `issue_id` | string | ✅ | ⚠️ Irreversible operation |

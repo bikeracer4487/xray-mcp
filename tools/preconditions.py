@@ -14,10 +14,12 @@ try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
+    from utils import IssueIdResolver
 
 
 class PreconditionTools:
@@ -46,6 +48,7 @@ class PreconditionTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def get_preconditions(
         self, issue_id: str, start: int = 0, limit: int = 100
@@ -89,17 +92,16 @@ class PreconditionTools:
                             name
                             kind
                         }
-                        jira(fields: ["key", "summary", "status", "priority", "labels", "created", "updated"]) {
-                            key
-                            fields
-                        }
+                        jira(fields: ["key", "summary", "status", "priority", "labels", "created", "updated"])
                     }
                 }
             }
         }
         """
 
-        variables = {"issueId": issue_id, "start": start, "limit": limit}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id, "start": start, "limit": limit}
 
         result = await self.client.execute_query(query, variables)
         return result.get("data", {}).get("getTest", {}).get("preconditions", {})
@@ -174,8 +176,10 @@ class PreconditionTools:
                 }
             }
             """
+            # Resolve the test issue ID
+            resolved_test_id = await self.id_resolver.resolve_issue_id(issue_id)
             add_variables = {
-                "issueId": issue_id,
+                "issueId": resolved_test_id,
                 "preconditionIssueIds": [precondition_id],
             }
             add_result = await self.client.execute_query(add_mutation, add_variables)
@@ -225,7 +229,9 @@ class PreconditionTools:
         }
         """
 
-        variables = {"issueId": precondition_id, "data": updates}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(precondition_id)
+        variables = {"issueId": resolved_id, "data": updates}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("updatePrecondition", {})
@@ -256,7 +262,9 @@ class PreconditionTools:
         }
         """
 
-        variables = {"preconditionId": precondition_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(precondition_id)
+        variables = {"preconditionId": resolved_id}
 
         result = await self.client.execute_query(mutation, variables)
         return {

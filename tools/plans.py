@@ -15,10 +15,12 @@ try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
+    from utils import IssueIdResolver
 
 
 class TestPlanTools:
@@ -47,6 +49,7 @@ class TestPlanTools:
             graphql_client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = graphql_client
+        self.id_resolver = IssueIdResolver(graphql_client)
 
     async def get_test_plan(self, issue_id: str) -> Dict[str, Any]:
         """Retrieve a single test plan by issue ID.
@@ -95,7 +98,9 @@ class TestPlanTools:
         }
         """
 
-        variables = {"issueId": issue_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id}
         result = await self.client.execute_query(query, variables)
         return result.get("data", {}).get("getTestPlan", {})
 
@@ -277,7 +282,9 @@ class TestPlanTools:
         }
         """
 
-        variables = {"issueId": issue_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id}
         result = await self.client.execute_query(mutation, variables)
 
         return {
@@ -320,7 +327,10 @@ class TestPlanTools:
         }
         """
 
-        variables = {"issueId": issue_id, "testIssueIds": test_issue_ids}
+        # Resolve Jira keys to internal IDs if necessary
+        resolved_plan_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(test_issue_ids)
+        variables = {"issueId": resolved_plan_id, "testIssueIds": resolved_test_ids}
 
         result = await self.client.execute_query(mutation, variables)
         return result.get("data", {}).get("addTestsToTestPlan", {})
@@ -354,7 +364,10 @@ class TestPlanTools:
         }
         """
 
-        variables = {"issueId": issue_id, "testIssueIds": test_issue_ids}
+        # Resolve Jira keys to internal IDs if necessary
+        resolved_plan_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(test_issue_ids)
+        variables = {"issueId": resolved_plan_id, "testIssueIds": resolved_test_ids}
 
         result = await self.client.execute_query(mutation, variables)
         # removeTestsFromTestPlan returns null on success

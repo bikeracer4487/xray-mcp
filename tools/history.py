@@ -13,9 +13,11 @@ from typing import Dict, Any, List, Optional
 try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
+    from utils import IssueIdResolver
 
 
 class HistoryTools:
@@ -44,6 +46,7 @@ class HistoryTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def get_xray_history(
         self,
@@ -150,9 +153,15 @@ class HistoryTools:
         }
         """
 
+        # Resolve Jira keys to internal IDs if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_test_plan_id = None
+        if test_plan_id:
+            resolved_test_plan_id = await self.id_resolver.resolve_issue_id(test_plan_id)
+
         variables = {
-            "issueId": issue_id,
-            "testPlanId": test_plan_id,
+            "issueId": resolved_id,
+            "testPlanId": resolved_test_plan_id,
             "testEnvId": test_env_id,
             "start": start,
             "limit": limit,

@@ -333,14 +333,8 @@ class TestSetTools:
         mutation = """
         mutation AddTestsToTestSet($issueId: String!, $testIssueIds: [String!]!) {
             addTestsToTestSet(issueId: $issueId, testIssueIds: $testIssueIds) {
-                addedTests {
-                    issueId
-                    summary
-                    testType {
-                        name
-                    }
-                }
-                warnings
+                addedTests
+                warning
             }
         }
         """

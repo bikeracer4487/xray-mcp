@@ -13,9 +13,11 @@ from typing import Dict, Any, List, Optional
 try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
+    from utils import IssueIdResolver
 
 
 class OrganizationTools:
@@ -44,6 +46,7 @@ class OrganizationTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def get_folder_contents(
         self, project_id: str, folder_path: str = "/"
@@ -115,7 +118,9 @@ class OrganizationTools:
         }
         """
 
-        variables = {"issueId": issue_id, "folderPath": folder_path}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        variables = {"issueId": resolved_id, "folderPath": folder_path}
 
         result = await self.client.execute_query(mutation, variables)
         # updateTestFolder returns null on success
@@ -137,12 +142,8 @@ class OrganizationTools:
 
         Returns:
             Dict containing:
-                - id: Dataset ID
-                - testIssueId: Associated test issue ID
-                - testExecIssueId: Associated test execution issue ID (if any)
-                - testPlanIssueId: Associated test plan issue ID (if any)
-                - parameters: List of parameter definitions with name, type, listValues
-                - rows: List of data rows with order and Values array
+                - dataset: Dataset object with id, testIssueId, parameters, rows, etc.
+                - found: Boolean indicating whether dataset was found
 
         Raises:
             ValidationError: If test_issue_id is invalid
@@ -168,9 +169,14 @@ class OrganizationTools:
         }
         """
 
-        variables = {"testIssueId": test_issue_id}
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(test_issue_id)
+        variables = {"testIssueId": resolved_id}
         result = await self.client.execute_query(query, variables)
-        return result.get("data", {}).get("getDataset", {})
+        dataset = result.get("data", {}).get("getDataset")
+        if dataset is None:
+            return {"dataset": None, "found": False}
+        return {"dataset": dataset, "found": True}
 
     async def get_datasets(self, test_issue_ids: List[str]) -> Dict[str, Any]:
         """Retrieve datasets for multiple tests.
@@ -183,13 +189,8 @@ class OrganizationTools:
             test_issue_ids: List of test issue IDs to retrieve datasets for
 
         Returns:
-            Dict containing list of dataset objects with:
-                - id: Dataset ID
-                - testIssueId: Associated test issue ID
-                - testExecIssueId: Associated test execution issue ID (if any)
-                - testPlanIssueId: Associated test plan issue ID (if any)
-                - parameters: List of parameter definitions with name, type, listValues
-                - rows: List of data rows with order and Values array
+            Dict containing:
+                - datasets: List of dataset objects with id, testIssueId, parameters, rows, etc.
 
         Raises:
             ValidationError: If test_issue_ids is invalid or empty
@@ -218,6 +219,9 @@ class OrganizationTools:
         }
         """
 
-        variables = {"testIssueIds": test_issue_ids}
+        # Resolve Jira keys to internal IDs if necessary  
+        resolved_ids = await self.id_resolver.resolve_multiple_issue_ids(test_issue_ids)
+        variables = {"testIssueIds": resolved_ids}
         result = await self.client.execute_query(query, variables)
-        return result.get("data", {}).get("getDatasets", [])
+        datasets = result.get("data", {}).get("getDatasets", [])
+        return {"datasets": datasets}

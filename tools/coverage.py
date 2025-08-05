@@ -14,10 +14,12 @@ try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
+    from utils import IssueIdResolver
 
 
 class CoverageTools:
@@ -46,6 +48,7 @@ class CoverageTools:
             client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = client
+        self.id_resolver = IssueIdResolver(client)
 
     async def get_test_status(
         self,
@@ -98,11 +101,17 @@ class CoverageTools:
         }
         """
 
+        # Resolve Jira key to internal ID if necessary
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_test_plan = None
+        if test_plan:
+            resolved_test_plan = await self.id_resolver.resolve_issue_id(test_plan)
+
         variables = {
-            "issueId": issue_id,
+            "issueId": resolved_id,
             "environment": environment,
             "version": version,
-            "testPlan": test_plan,
+            "testPlan": resolved_test_plan,
         }
 
         result = await self.client.execute_query(query, variables)

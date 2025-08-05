@@ -15,10 +15,12 @@ try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
+    from ..utils import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
+    from utils import IssueIdResolver
 
 
 class TestRunTools:
@@ -47,6 +49,7 @@ class TestRunTools:
             graphql_client (XrayGraphQLClient): Authenticated GraphQL client instance
         """
         self.client = graphql_client
+        self.id_resolver = IssueIdResolver(graphql_client)
 
     async def get_test_run(self, issue_id: str) -> Dict[str, Any]:
         """Retrieve a single test run by issue ID.
@@ -203,9 +206,18 @@ class TestRunTools:
         }
         """
 
+        # Resolve Jira keys to internal IDs if necessary
+        resolved_test_ids = None
+        resolved_exec_ids = None
+        
+        if test_issue_ids:
+            resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(test_issue_ids)
+        if test_exec_issue_ids:
+            resolved_exec_ids = await self.id_resolver.resolve_multiple_issue_ids(test_exec_issue_ids)
+
         variables = {
-            "testIssueIds": test_issue_ids,
-            "testExecIssueIds": test_exec_issue_ids,
+            "testIssueIds": resolved_test_ids,
+            "testExecIssueIds": resolved_exec_ids,
             "limit": limit,
         }
 
