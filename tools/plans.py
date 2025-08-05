@@ -276,9 +276,7 @@ class TestPlanTools:
         """
         mutation = """
         mutation DeleteTestPlan($issueId: String!) {
-            deleteTestPlan(issueId: $issueId) {
-                success
-            }
+            deleteTestPlan(issueId: $issueId)
         }
         """
 
@@ -288,9 +286,7 @@ class TestPlanTools:
         result = await self.client.execute_query(mutation, variables)
 
         return {
-            "success": result.get("data", {})
-            .get("deleteTestPlan", {})
-            .get("success", False),
+            "success": result.get("data", {}).get("deleteTestPlan") is not None,
             "deletedTestPlanId": issue_id,
         }
 

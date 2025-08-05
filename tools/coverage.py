@@ -92,7 +92,10 @@ class CoverageTools:
                     environment: $environment,
                     version: $version,
                     testPlan: $testPlan
-                )
+                ) {
+                    name
+                    color
+                }
                 testType {
                     name
                 }

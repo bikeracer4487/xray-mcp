@@ -287,9 +287,7 @@ class TestSetTools:
         """
         mutation = """
         mutation DeleteTestSet($issueId: String!) {
-            deleteTestSet(issueId: $issueId) {
-                success
-            }
+            deleteTestSet(issueId: $issueId)
         }
         """
 
@@ -376,10 +374,7 @@ class TestSetTools:
 
         mutation = """
         mutation RemoveTestsFromTestSet($issueId: String!, $testIssueIds: [String!]!) {
-            removeTestsFromTestSet(issueId: $issueId, testIssueIds: $testIssueIds) {
-                removedTests
-                success
-            }
+            removeTestsFromTestSet(issueId: $issueId, testIssueIds: $testIssueIds)
         }
         """
 
@@ -392,4 +387,8 @@ class TestSetTools:
         variables = {"issueId": resolved_set_id, "testIssueIds": resolved_test_ids}
 
         result = await self.client.execute_query(mutation, variables)
-        return result.get("data", {}).get("removeTestsFromTestSet", {})
+        
+        return {
+            "success": result.get("data", {}).get("removeTestsFromTestSet") is not None,
+            "removedTests": test_issue_ids if result.get("data", {}).get("removeTestsFromTestSet") else [],
+        }

@@ -398,8 +398,8 @@ class XrayMCPServer:
             test_type: Optional[str] = None,
             gherkin: Optional[str] = None,
             unstructured: Optional[str] = None,
-            steps: Optional[List[Dict[str, str]]] = None,
-            jira_fields: Optional[Dict[str, Any]] = None,
+            steps: Optional[Union[str, List[Dict[str, str]]]] = None,
+            jira_fields: Optional[Union[str, Dict[str, Any]]] = None,
             version_id: Optional[int] = None,
         ) -> Dict[str, Any]:
             """Update various aspects of an existing test.
@@ -420,6 +420,22 @@ class XrayMCPServer:
                 Combined update results with success status, updated fields, and warnings
             """
             try:
+                # Handle steps parameter when passed as JSON string
+                if steps is not None and isinstance(steps, str):
+                    import json
+                    try:
+                        steps = json.loads(steps)
+                    except json.JSONDecodeError as e:
+                        return {"error": f"Invalid JSON in steps parameter: {str(e)}", "type": "JSONDecodeError"}
+                
+                # Handle jira_fields parameter when passed as JSON string
+                if jira_fields is not None and isinstance(jira_fields, str):
+                    import json
+                    try:
+                        jira_fields = json.loads(jira_fields)
+                    except json.JSONDecodeError as e:
+                        return {"error": f"Invalid JSON in jira_fields parameter: {str(e)}", "type": "JSONDecodeError"}
+                
                 return await self.test_tools.update_test(
                     issue_id, test_type, gherkin, unstructured, steps, jira_fields, version_id
                 )

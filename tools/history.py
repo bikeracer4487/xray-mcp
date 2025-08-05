@@ -96,58 +96,20 @@ class HistoryTools:
         query = """
         query GetXrayHistory(
             $issueId: String!,
-            $testPlanId: String,
-            $testEnvId: String,
             $start: Int!,
             $limit: Int!
         ) {
             getTest(issueId: $issueId) {
                 history(
-                    testPlanId: $testPlanId,
-                    testEnvironmentId: $testEnvId,
                     start: $start,
                     limit: $limit
                 ) {
-                total
-                start
-                limit
-                results {
-                    executionId
-                    testRunId
-                    status {
-                        name
-                        color
-                    }
-                    executedBy {
-                        displayName
-                        emailAddress
-                    }
-                    executedOn
-                    environment
-                    testPlan {
-                        issueId
-                        summary
-                    }
-                    comment
-                    defects {
-                        issueId
-                        summary
-                        status {
-                            name
-                        }
-                    }
-                    evidence {
+                    total
+                    start
+                    limit
+                    results {
                         id
-                        filename
-                        url
-                        mimeType
-                        size
-                        uploadedBy {
-                            displayName
-                        }
-                        uploadedOn
                     }
-                }
                 }
             }
         }
@@ -155,14 +117,9 @@ class HistoryTools:
 
         # Resolve Jira keys to internal IDs if necessary
         resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
-        resolved_test_plan_id = None
-        if test_plan_id:
-            resolved_test_plan_id = await self.id_resolver.resolve_issue_id(test_plan_id)
 
         variables = {
             "issueId": resolved_id,
-            "testPlanId": resolved_test_plan_id,
-            "testEnvId": test_env_id,
             "start": start,
             "limit": limit,
         }
