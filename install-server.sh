@@ -374,18 +374,64 @@ validate_api_keys() {
     fi
     
     if [[ "$has_key" == false ]]; then
-        print_error "Xray API credentials not found in .env!"
+        print_warning "Xray API credentials not found in .env!"
         echo "" >&2
-        echo "Please edit .env and add your Xray API credentials:" >&2
-        echo "  XRAY_CLIENT_ID=your-actual-client-id" >&2
-        echo "  XRAY_CLIENT_SECRET=your-actual-client-secret" >&2
+        echo "Would you like to input your Xray API credentials now?" >&2
+        read -p "Enter your Xray Client ID and Secret? (Y/n): " -r
         echo "" >&2
-        echo "You can obtain these from your Xray instance:" >&2
-        echo "  https://docs.getxray.app/display/XRAYCLOUD/Global+Settings%3A+API+Keys" >&2
-        echo "" >&2
-        print_info "After adding your API keys, run ./run-server.sh again" >&2
-        echo "" >&2
-        return 1
+        
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            # Prompt for credentials
+            echo "Please enter your Xray API credentials:" >&2
+            echo "You can obtain these from your Xray instance at:" >&2
+            echo "  https://docs.getxray.app/display/XRAYCLOUD/Global+Settings%3A+API+Keys" >&2
+            echo "" >&2
+            
+            read -p "Xray Client ID: " xray_client_id
+            echo ""
+            
+            # Read secret without echo
+            read -s -p "Xray Client Secret: " xray_client_secret
+            echo ""
+            echo ""
+            
+            # Validate input
+            if [[ -z "$xray_client_id" ]] || [[ -z "$xray_client_secret" ]]; then
+                print_error "Both Client ID and Client Secret are required!"
+                return 1
+            fi
+            
+            # Create .env file with the credentials
+            cat > .env << EOF
+# Xray API Configuration
+XRAY_CLIENT_ID=$xray_client_id
+XRAY_CLIENT_SECRET=$xray_client_secret
+XRAY_BASE_URL=https://xray.cloud.getxray.app
+EOF
+            
+            print_success "Created .env file with your Xray API credentials"
+            print_info "Your credentials are saved in .env (keep this file secure!)"
+            return 0
+        else
+            # User chose not to input credentials now
+            print_info "You can set up your credentials manually:"
+            echo "" >&2
+            echo "1. Copy the example environment file:" >&2
+            echo "   cp .env.example .env" >&2
+            echo "" >&2
+            echo "2. Edit .env and add your Xray API credentials:" >&2
+            echo "   XRAY_CLIENT_ID=your-actual-client-id" >&2
+            echo "   XRAY_CLIENT_SECRET=your-actual-client-secret" >&2
+            echo "" >&2
+            echo "You can obtain these from your Xray instance:" >&2
+            echo "  https://docs.getxray.app/display/XRAYCLOUD/Global+Settings%3A+API+Keys" >&2
+            echo "" >&2
+            print_warning "WARNING: The MCP server will not function until you configure your API credentials!" >&2
+            echo "" >&2
+            print_info "After adding your API keys, run ./install-server.sh again" >&2
+            echo "" >&2
+            return 1
+        fi
     fi
     
     return 0
