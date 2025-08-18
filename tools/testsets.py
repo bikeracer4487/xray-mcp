@@ -15,11 +15,13 @@ try:
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
     from ..utils import IssueIdResolver
+    from ..utils.id_resolver import ResourceType
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
     from utils import IssueIdResolver
+    from utils.id_resolver import ResourceType
 
 
 class TestSetTools:
@@ -79,10 +81,7 @@ class TestSetTools:
             getTestSet(issueId: $issueId) {
                 issueId
                 projectId
-                jira(fields: ["key", "summary", "description", "status", "priority", "labels", "created", "updated"]) {
-                    key
-                    fields
-                }
+                jira(fields: ["key", "summary", "description", "status", "priority", "labels", "created", "updated"])
                 tests(limit: 100) {
                     total
                     results {
@@ -98,7 +97,7 @@ class TestSetTools:
         """
 
         # Resolve Jira key to internal ID if necessary
-        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_SET)
 
         variables = {"issueId": resolved_id}
         result = await self.client.execute_query(query, variables)
@@ -142,10 +141,7 @@ class TestSetTools:
                 results {
                     issueId
                     projectId
-                    jira(fields: ["key", "summary", "description", "status", "priority", "labels", "created", "updated"]) {
-                        key
-                        fields
-                    }
+                    jira(fields: ["key", "summary", "description", "status", "priority", "labels", "created", "updated"])
                 }
             }
         }
@@ -260,7 +256,7 @@ class TestSetTools:
         """
 
         # Resolve Jira key to internal ID if necessary
-        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_SET)
 
         variables = {"issueId": resolved_id, "updates": updates}
 
@@ -292,16 +288,28 @@ class TestSetTools:
         """
 
         # Resolve Jira key to internal ID if necessary
-        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_SET)
 
         variables = {"issueId": resolved_id}
         result = await self.client.execute_query(mutation, variables)
 
+        delete_result = result.get("data", {}).get("deleteTestSet")
+        
+        # Handle both string and object responses
+        if isinstance(delete_result, str):
+            # If the response is a string, consider it successful if not empty
+            success = bool(delete_result)
+        elif isinstance(delete_result, dict):
+            # If the response is a dict, check for success field
+            success = delete_result.get("success", False)
+        else:
+            # If no response or unexpected type, consider it failed
+            success = False
+        
         return {
-            "success": result.get("data", {})
-            .get("deleteTestSet", {})
-            .get("success", False),
+            "success": success,
             "deletedTestSetId": issue_id,
+            "message": delete_result if isinstance(delete_result, str) else None,
         }
 
     async def add_tests_to_set(
@@ -338,9 +346,9 @@ class TestSetTools:
         """
 
         # Resolve Jira keys to internal IDs for both test set and tests
-        resolved_set_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_set_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_SET)
         resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(
-            test_issue_ids
+            test_issue_ids, ResourceType.TEST
         )
 
         variables = {"issueId": resolved_set_id, "testIssueIds": resolved_test_ids}
@@ -379,9 +387,9 @@ class TestSetTools:
         """
 
         # Resolve Jira keys to internal IDs for both test set and tests
-        resolved_set_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_set_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_SET)
         resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(
-            test_issue_ids
+            test_issue_ids, ResourceType.TEST
         )
 
         variables = {"issueId": resolved_set_id, "testIssueIds": resolved_test_ids}

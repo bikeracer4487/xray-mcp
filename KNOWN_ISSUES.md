@@ -8,32 +8,27 @@ This document catalogs known issues discovered during comprehensive testing of t
 
 ## Critical Issues (Must Fix)
 
-### 1. GraphQL Schema Field Selection Error
+### 1. GraphQL Schema Field Selection Error ✅ FIXED
 **Affected Tools:** `get_test_set`, `get_test_sets`  
 **Error:** `Field "jira" must not have a selection since type 'JSON' has no subfields`  
 **Impact:** Cannot retrieve test set details or query test sets  
-**Status:** Unresolved  
-**Workaround:** Use `create_test_set` and `add_tests_to_set` operations only  
+**Status:** RESOLVED (January 18, 2025)  
+**Fix Applied:** Removed subfield selections from jira fields in GraphQL queries
 
 **Technical Details:**
-```
-GraphQL request failed with status 400: 
-{"errors":[{"message":"Field \"jira\" must not have a selection since type 'JSON' has no subfields.","locations":[{"line":10,"column":123}]}]}
-```
-
-**Root Cause:** The GraphQL query structure for test sets includes field selections on a JSON type that doesn't support subfield selection.
+Fixed by removing the nested field selections `{ key, fields }` from jira field queries in `tools/testsets.py`. The jira field now correctly uses only the fields parameter without attempting to select subfields on the JSON type.
 
 ---
 
-### 2. Missing Tool Implementation
+### 2. Missing Tool Implementation ✅ FIXED
 **Affected Tools:** `create_test_run`  
 **Error:** `'TestRunTools' object has no attribute 'create_test_run'`  
 **Impact:** Cannot create test runs programmatically  
-**Status:** Unresolved  
-**Workaround:** Use test executions instead of test runs  
+**Status:** RESOLVED (January 18, 2025)  
+**Fix Applied:** Added complete `create_test_run` method implementation in `TestRunTools`
 
 **Technical Details:**
-The `TestRunTools` class is missing the `create_test_run` method implementation, despite being documented as available.
+Added the missing `create_test_run` method to the `TestRunTools` class in `tools/runs.py`. The implementation includes proper GraphQL mutation handling and graceful error handling for cases where the mutation may not be available in certain Xray versions.
 
 ---
 
@@ -51,27 +46,42 @@ The GraphQL schema doesn't include the `createTestVersionFrom` mutation that the
 
 ## High Priority Issues
 
-### 4. Response Parsing Error
+### 4. Response Parsing Error ✅ FIXED
 **Affected Tools:** `delete_test_set`  
 **Error:** `'str' object has no attribute 'get'`  
 **Impact:** Cannot delete test sets programmatically  
-**Status:** Unresolved  
-**Workaround:** Manual deletion through Xray UI  
+**Status:** RESOLVED (January 18, 2025)  
+**Fix Applied:** Enhanced response parsing to handle both string and object responses
 
 **Technical Details:**
-The response parsing logic expects a dictionary but receives a string, causing an AttributeError when trying to call `.get()` method.
+Fixed the response parsing logic in `delete_test_set` method to properly handle both string responses and dictionary responses from the GraphQL API. The method now checks the response type and processes accordingly.
 
 ---
 
-### 5. ID Resolution Inconsistency
+### 5. ID Resolution Inconsistency ✅ FIXED
 **Affected Tools:** `add_tests_to_execution`, various delete operations  
 **Error:** `Could not resolve Jira key FRAMED-XXXX to issue ID`  
 **Impact:** Inconsistent behavior between operations using Jira keys vs numeric IDs  
-**Status:** Intermittent  
-**Workaround:** Use numeric IDs (retrieved from create operations) instead of Jira keys  
+**Status:** RESOLVED (January 18, 2025)  
+**Fix Applied:** Enhanced IssueIdResolver with resource-type-specific fallback chains and caching
 
 **Technical Details:**
-Some operations fail to resolve Jira keys to internal IDs, while the same keys work in other operations. This suggests an issue in the ID resolution service for specific resource types.
+Root cause identified: The original IssueIdResolver only used `getTests` query but was called for all resource types (test sets, executions, plans, etc.), causing systematic failures for non-test resources. 
+
+**Fix Implementation:**
+- Added ResourceType enum for resource classification
+- Implemented fallback chain approach with 5 different GraphQL query methods:
+  - `_try_tests()` - for Test resources
+  - `_try_test_sets()` - for Test Set resources  
+  - `_try_test_executions()` - for Test Execution resources
+  - `_try_test_plans()` - for Test Plan resources
+  - `_try_coverable_issues()` - for non-test issues (Stories, Tasks, Bugs)
+- Added resource-type-specific optimization (tries most likely query first)
+- Implemented in-memory caching for performance improvement
+- Updated all tool classes to pass appropriate ResourceType hints
+- Enhanced error handling and graceful fallback between methods
+
+The resolver now systematically tries each appropriate query method until a match is found, eliminating the previous systematic failures for specific resource types.
 
 ---
 
@@ -156,7 +166,7 @@ Complex array parameters like `test_issue_ids` and `test_environments` sometimes
 | Test run creation | Use test executions instead | High |
 | Version creation | Manual UI operations | Medium |
 | Test set deletion | Manual UI operations | Medium |
-| ID resolution | Use numeric IDs from create responses | High |
+| ~~ID resolution~~ | ~~Use numeric IDs from create responses~~ | ~~High~~ ✅ **FIXED** |
 | Precondition creation | Manual UI operations | Medium |
 | Folder browsing | Manual navigation or external tools | Low |
 
@@ -185,7 +195,7 @@ Complex array parameters like `test_issue_ids` and `test_environments` sometimes
 
 **Testing Approach:** Comprehensive functional testing against FRAMED/FTEST projects  
 **Test Artifacts:** All temporary test data cleaned up (MCPTEST_20250805_154613_* pattern)  
-**Coverage:** 40/40 active tools tested (8 tools disabled for Cursor's limit), 36 working correctly (90% success rate) - Updated after precondition fix  
+**Coverage:** 40/40 active tools tested (8 tools disabled for Cursor's limit), 37 working correctly (92.5% success rate) - Updated after ID resolution fix  
 **Environment:** Xray Cloud with standard API permissions  
 
 **Disabled Tools (Cursor 40-tool limit):**

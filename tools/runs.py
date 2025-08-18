@@ -224,6 +224,80 @@ class TestRunTools:
         result = await self.client.execute_query(query, variables)
         return result.get("data", {}).get("getTestRuns", {})
 
+    async def create_test_run(
+        self,
+        project_key: str,
+        summary: str,
+        test_environments: Optional[List[str]] = None,
+        description: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new test run in Xray.
+
+        Creates a test run issue in Jira. Test runs represent the execution context
+        for running tests and tracking results.
+
+        Args:
+            project_key: Jira project key where the test run will be created
+            summary: Test run title/summary
+            test_environments: Optional list of test environments
+            description: Optional detailed description
+
+        Returns:
+            Dict containing:
+                - testRun: Created test run object with issue ID and key
+                - warnings: Any warnings from the operation
+
+        Raises:
+            ValidationError: If required fields are missing or invalid
+            GraphQLError: If the GraphQL mutation fails
+
+        Note:
+            This implementation creates a test run as a Jira issue. The actual
+            execution of tests within the run happens through test execution APIs.
+        """
+        mutation = """
+        mutation CreateTestRun($jira: JSON!, $testEnvironments: [String]) {
+            createTestRun(jira: $jira, testEnvironments: $testEnvironments) {
+                testRun {
+                    issueId
+                    jira(fields: ["key", "summary"])
+                }
+                warnings
+            }
+        }
+        """
+
+        # Build Jira JSON structure as required by the GraphQL schema
+        jira_data = {
+            "fields": {
+                "project": {"key": project_key},
+                "summary": summary,
+                "issuetype": {"name": "Test Run"},
+            }
+        }
+
+        if description:
+            jira_data["fields"]["description"] = description
+
+        variables = {
+            "jira": jira_data,
+            "testEnvironments": test_environments or [],
+        }
+
+        try:
+            result = await self.client.execute_query(mutation, variables)
+            return result.get("data", {}).get("createTestRun", {})
+        except GraphQLError as e:
+            # If the createTestRun mutation doesn't exist in the schema,
+            # provide a helpful error message
+            if "Cannot query field 'createTestRun'" in str(e):
+                raise ValidationError(
+                    "createTestRun mutation is not available in the Xray GraphQL schema. "
+                    "This may be a limitation of your Xray version or configuration. "
+                    "Consider using test executions instead."
+                ) from e
+            raise
+
     async def update_test_run_status(
         self, test_run_id: str, status: str
     ) -> Dict[str, Any]:

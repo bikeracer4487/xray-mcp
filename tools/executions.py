@@ -15,11 +15,13 @@ try:
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
     from ..utils import IssueIdResolver
+    from ..utils.id_resolver import ResourceType
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
     from utils import IssueIdResolver
+    from utils.id_resolver import ResourceType
 
 
 class TestExecutionTools:
@@ -95,7 +97,7 @@ class TestExecutionTools:
         """
 
         # Resolve Jira key to internal ID if necessary
-        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_EXECUTION)
 
         variables = {"issueId": resolved_id}
         result = await self.client.execute_query(query, variables)
@@ -309,7 +311,7 @@ class TestExecutionTools:
         """
 
         # Resolve Jira key to internal ID if necessary
-        resolved_id = await self.id_resolver.resolve_issue_id(issue_id)
+        resolved_id = await self.id_resolver.resolve_issue_id(issue_id, ResourceType.TEST_EXECUTION)
 
         variables = {"issueId": resolved_id}
         result = await self.client.execute_mutation(mutation, variables)
@@ -369,10 +371,10 @@ class TestExecutionTools:
 
         # Resolve Jira keys to internal IDs for both execution and tests
         resolved_execution_id = await self.id_resolver.resolve_issue_id(
-            execution_issue_id
+            execution_issue_id, ResourceType.TEST_EXECUTION
         )
         resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(
-            test_issue_ids
+            test_issue_ids, ResourceType.TEST
         )
 
         variables = {
@@ -432,10 +434,10 @@ class TestExecutionTools:
 
         # Resolve Jira keys to internal IDs for both execution and tests
         resolved_execution_id = await self.id_resolver.resolve_issue_id(
-            execution_issue_id
+            execution_issue_id, ResourceType.TEST_EXECUTION
         )
         resolved_test_ids = await self.id_resolver.resolve_multiple_issue_ids(
-            test_issue_ids
+            test_issue_ids, ResourceType.TEST
         )
 
         variables = {
@@ -507,7 +509,7 @@ class TestExecutionTools:
 
         # Resolve Jira key to internal ID if necessary
         resolved_execution_id = await self.id_resolver.resolve_issue_id(
-            execution_issue_id
+            execution_issue_id, ResourceType.TEST_EXECUTION
         )
 
         variables = {
@@ -571,7 +573,7 @@ class TestExecutionTools:
 
         # Resolve Jira key to internal ID if necessary
         resolved_execution_id = await self.id_resolver.resolve_issue_id(
-            execution_issue_id
+            execution_issue_id, ResourceType.TEST_EXECUTION
         )
 
         variables = {
