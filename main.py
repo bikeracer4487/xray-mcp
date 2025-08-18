@@ -521,20 +521,21 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
 
-        @self.mcp.tool()
-        async def delete_test_execution(issue_id: str) -> Dict[str, Any]:
-            """Delete a test execution from Xray.
-
-            Args:
-                issue_id: The Jira issue ID of the test execution to delete
-
-            Returns:
-                Confirmation of deletion
-            """
-            try:
-                return await self.execution_tools.delete_test_execution(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: delete_test_execution tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def delete_test_execution(issue_id: str) -> Dict[str, Any]:
+        #     """Delete a test execution from Xray.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test execution to delete
+        #
+        #     Returns:
+        #         Confirmation of deletion
+        #     """
+        #     try:
+        #         return await self.execution_tools.delete_test_execution(issue_id)
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
         async def add_tests_to_execution(
@@ -769,20 +770,21 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
 
-        @self.mcp.tool()
-        async def delete_test_set(issue_id: str) -> Dict[str, Any]:
-            """Delete a test set from Xray.
-
-            Args:
-                issue_id: The Jira issue ID of the test set to delete
-
-            Returns:
-                Confirmation of deletion
-            """
-            try:
-                return await self.testset_tools.delete_test_set(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: delete_test_set tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def delete_test_set(issue_id: str) -> Dict[str, Any]:
+        #     """Delete a test set from Xray.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test set to delete
+        #
+        #     Returns:
+        #         Confirmation of deletion
+        #     """
+        #     try:
+        #         return await self.testset_tools.delete_test_set(issue_id)
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
         async def add_tests_to_set(
@@ -904,20 +906,21 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
 
-        @self.mcp.tool()
-        async def delete_test_plan(issue_id: str) -> Dict[str, Any]:
-            """Delete a test plan from Xray.
-
-            Args:
-                issue_id: The Jira issue ID of the test plan to delete
-
-            Returns:
-                Confirmation of deletion
-            """
-            try:
-                return await self.plan_tools.delete_test_plan(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: delete_test_plan tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def delete_test_plan(issue_id: str) -> Dict[str, Any]:
+        #     """Delete a test plan from Xray.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test plan to delete
+        #
+        #     Returns:
+        #         Confirmation of deletion
+        #     """
+        #     try:
+        #         return await self.plan_tools.delete_test_plan(issue_id)
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
         async def add_tests_to_plan(
@@ -1018,97 +1021,102 @@ class XrayMCPServer:
             except Exception as e:
                 return {"error": str(e), "type": type(e).__name__}
 
-        @self.mcp.tool()
-        async def delete_test_run(issue_id: str) -> Dict[str, Any]:
-            """Delete a test run from Xray.
-
-            Args:
-                issue_id: The Jira issue ID of the test run to delete
-
-            Returns:
-                Confirmation of deletion
-            """
-            try:
-                return await self.run_tools.delete_test_run(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: delete_test_run tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def delete_test_run(issue_id: str) -> Dict[str, Any]:
+        #     """Delete a test run from Xray.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test run to delete
+        #
+        #     Returns:
+        #         Confirmation of deletion
+        #     """
+        #     try:
+        #         return await self.run_tools.delete_test_run(issue_id)
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
         # Test Versioning Tools
-        @self.mcp.tool()
-        async def get_test_versions(issue_id: str) -> Dict[str, Any]:
-            """Retrieve all versions of a test.
+        # DISABLED: get_test_versions tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def get_test_versions(issue_id: str) -> Dict[str, Any]:
+        #     """Retrieve all versions of a test.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test
+        #
+        #     Returns:
+        #         List of test versions with version details and metadata
+        #     """
+        #     try:
+        #         return await self.versioning_tools.get_test_versions(issue_id)
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
-            Args:
-                issue_id: The Jira issue ID of the test
+        # DISABLED: archive_test_version tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def archive_test_version(
+        #     issue_id: str, version_id: int
+        # ) -> Dict[str, Any]:
+        #     """Archive a specific version of a test.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test
+        #         version_id: The version ID to archive
+        #
+        #     Returns:
+        #         Confirmation of archival with archived version details
+        #     """
+        #     try:
+        #         return await self.versioning_tools.archive_test_version(
+        #             issue_id, version_id
+        #         )
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
-            Returns:
-                List of test versions with version details and metadata
-            """
-            try:
-                return await self.versioning_tools.get_test_versions(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: restore_test_version tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def restore_test_version(
+        #     issue_id: str, version_id: int
+        # ) -> Dict[str, Any]:
+        #     """Restore an archived version of a test.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test
+        #         version_id: The version ID to restore
+        #
+        #     Returns:
+        #         Confirmation of restoration with restored version details
+        #     """
+        #     try:
+        #         return await self.versioning_tools.restore_test_version(
+        #             issue_id, version_id
+        #         )
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
-        @self.mcp.tool()
-        async def archive_test_version(
-            issue_id: str, version_id: int
-        ) -> Dict[str, Any]:
-            """Archive a specific version of a test.
-
-            Args:
-                issue_id: The Jira issue ID of the test
-                version_id: The version ID to archive
-
-            Returns:
-                Confirmation of archival with archived version details
-            """
-            try:
-                return await self.versioning_tools.archive_test_version(
-                    issue_id, version_id
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
-
-        @self.mcp.tool()
-        async def restore_test_version(
-            issue_id: str, version_id: int
-        ) -> Dict[str, Any]:
-            """Restore an archived version of a test.
-
-            Args:
-                issue_id: The Jira issue ID of the test
-                version_id: The version ID to restore
-
-            Returns:
-                Confirmation of restoration with restored version details
-            """
-            try:
-                return await self.versioning_tools.restore_test_version(
-                    issue_id, version_id
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
-
-        @self.mcp.tool()
-        async def create_test_version_from(
-            issue_id: str, source_version_id: int, version_name: str
-        ) -> Dict[str, Any]:
-            """Create a new test version from an existing version.
-
-            Args:
-                issue_id: The Jira issue ID of the test
-                source_version_id: The version ID to copy from
-                version_name: Name for the new version
-
-            Returns:
-                Created version information with details and metadata
-            """
-            try:
-                return await self.versioning_tools.create_test_version_from(
-                    issue_id, source_version_id, version_name
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+        # DISABLED: create_test_version_from tool commented out due to Cursor's 40-tool limit
+        # @self.mcp.tool()
+        # async def create_test_version_from(
+        #     issue_id: str, source_version_id: int, version_name: str
+        # ) -> Dict[str, Any]:
+        #     """Create a new test version from an existing version.
+        #
+        #     Args:
+        #         issue_id: The Jira issue ID of the test
+        #         source_version_id: The version ID to copy from
+        #         version_name: Name for the new version
+        #
+        #     Returns:
+        #         Created version information with details and metadata
+        #     """
+        #     try:
+        #         return await self.versioning_tools.create_test_version_from(
+        #             issue_id, source_version_id, version_name
+        #         )
+        #     except Exception as e:
+        #         return {"error": str(e), "type": type(e).__name__}
 
         # Coverage Tools
         @self.mcp.tool()

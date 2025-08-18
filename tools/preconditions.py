@@ -132,7 +132,7 @@ class PreconditionTools:
             GraphQLError: If the GraphQL mutation fails
         """
         mutation = """
-        mutation CreatePrecondition($preconditionType: PreconditionTypeInput!, $definition: String!, $jira: JSON!) {
+        mutation CreatePrecondition($preconditionType: UpdatePreconditionTypeInput, $definition: String, $jira: JSON!) {
             createPrecondition(preconditionType: $preconditionType, definition: $definition, jira: $jira) {
                 precondition {
                     issueId
@@ -149,18 +149,28 @@ class PreconditionTools:
         """
 
         # Extract and validate required fields from precondition_input
-        if "preconditionType" not in precondition_input:
-            raise ValidationError("preconditionType is required")
-        if "definition" not in precondition_input:
-            raise ValidationError("definition is required")
         if "jira" not in precondition_input:
             raise ValidationError("jira object is required")
 
+        # Build the variables - definition and preconditionType are optional in the schema
         variables = {
-            "preconditionType": precondition_input["preconditionType"],
-            "definition": precondition_input["definition"],
             "jira": precondition_input["jira"],
         }
+        
+        # Add optional fields if present
+        if "definition" in precondition_input:
+            variables["definition"] = precondition_input["definition"]
+            
+        if "preconditionType" in precondition_input:
+            # Ensure preconditionType has the correct structure
+            precondition_type = precondition_input["preconditionType"]
+            if isinstance(precondition_type, str):
+                # If it's a string, convert to the expected object format
+                variables["preconditionType"] = {"name": precondition_type}
+            elif isinstance(precondition_type, dict):
+                variables["preconditionType"] = precondition_type
+            else:
+                raise ValidationError("preconditionType must be a string or object with 'name' field")
 
         result = await self.client.execute_query(mutation, variables)
         create_result = result.get("data", {}).get("createPrecondition", {})
@@ -256,9 +266,7 @@ class PreconditionTools:
         """
         mutation = """
         mutation DeletePrecondition($preconditionId: String!) {
-            deletePrecondition(issueId: $preconditionId) {
-                success
-            }
+            deletePrecondition(issueId: $preconditionId)
         }
         """
 
@@ -267,9 +275,10 @@ class PreconditionTools:
         variables = {"preconditionId": resolved_id}
 
         result = await self.client.execute_query(mutation, variables)
+        # deletePrecondition returns a string message
+        delete_result = result.get("data", {}).get("deletePrecondition", "")
         return {
-            "success": result.get("data", {})
-            .get("deletePrecondition", {})
-            .get("success", False),
+            "success": bool(delete_result),  # Success if we got any response
             "deletedPreconditionId": precondition_id,
+            "message": delete_result
         }

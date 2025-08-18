@@ -108,7 +108,9 @@ Test your setup with the validation tool:
 
 ## 🛠️ Available Tools
 
-The server currently provides 48 MCP tools organized into 12 categories for comprehensive Xray test management. All tools return structured error responses: `{"error": "message", "type": "ErrorType"}`.
+The server currently provides 40 MCP tools organized into 12 categories for comprehensive Xray test management. All tools return structured error responses: `{"error": "message", "type": "ErrorType"}`.
+
+**Note**: 8 tools have been temporarily disabled due to Cursor IDE's 40-tool limit restriction. See the [Disabled Tools](#disabled-tools) section for details.
 
 ### 🔗 ID Format Support
 
@@ -149,7 +151,7 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 }}
 ```
 
-### Test Execution Management Tools (6)
+### Test Execution Management Tools (5)
 
 | Tool | Purpose | Parameters | Type | Req? | Notes |
 |------|---------|------------|------|------|-------|
@@ -161,7 +163,6 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 | | | `test_issue_ids` | List[string] | ❌ | Tests to include |
 | | | `test_environments` | List[string] | ❌ | Test environments |
 | | | `description` | string | ❌ | Execution description |
-| **delete_test_execution** | Delete test execution | `issue_id` | string | ✅ | ⚠️ Removes test history |
 | **add_tests_to_execution** | Add tests to existing execution | `execution_issue_id` | string | ✅ | Target execution |
 | | | `test_issue_ids` | List[string] | ✅ | Tests to add |
 | **remove_tests_from_execution** | Remove tests from execution | `execution_issue_id` | string | ✅ | Target execution |
@@ -198,7 +199,7 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 }}
 ```
 
-### Test Set Operations (6)
+### Test Set Operations (5)
 
 | Tool | Purpose | Parameters | Type | Req? | Notes |
 |------|---------|------------|------|------|-------|
@@ -212,7 +213,6 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 | **update_test_set** | Update existing test set | `issue_id` | string | ✅ | Test set to update |
 | | | `summary` | string | ✅ | New title |
 | | | `description` | string | ❌ | New description |
-| **delete_test_set** | Delete test set | `issue_id` | string | ✅ | Test set to delete |
 | **add_tests_to_set** | Add tests to test set | `set_issue_id` | string | ✅ | Target test set |
 | | | `test_issue_ids` | List[string] | ✅ | Tests to add |
 | **remove_tests_from_set** | Remove tests from test set | `set_issue_id` | string | ✅ | Target test set |
@@ -227,7 +227,7 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 }}
 ```
 
-### Test Plan Operations (6)
+### Test Plan Operations (5)
 
 | Tool | Purpose | Parameters | Type | Req? | Notes |
 |------|---------|------------|------|------|-------|
@@ -241,7 +241,6 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 | **update_test_plan** | Update existing test plan | `issue_id` | string | ✅ | Test plan to update |
 | | | `summary` | string | ✅ | New title |
 | | | `description` | string | ❌ | New description |
-| **delete_test_plan** | Delete test plan | `issue_id` | string | ✅ | Test plan to delete |
 | **add_tests_to_plan** | Add tests to test plan | `plan_issue_id` | string | ✅ | Target test plan |
 | | | `test_issue_ids` | List[string] | ✅ | Tests to add |
 | **remove_tests_from_plan** | Remove tests from test plan | `plan_issue_id` | string | ✅ | Target test plan |
@@ -256,7 +255,7 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 }}
 ```
 
-### Test Run Management (4)
+### Test Run Management (3)
 
 | Tool | Purpose | Parameters | Type | Req? | Notes |
 |------|---------|------------|------|------|-------|
@@ -267,7 +266,6 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 | | | `summary` | string | ✅ | Test run title |
 | | | `test_environments` | List[string] | ❌ | Test environments |
 | | | `description` | string | ❌ | Test run description |
-| **delete_test_run** | Delete test run | `issue_id` | string | ✅ | Test run to delete |
 
 **Example call:**
 ```json
@@ -278,27 +276,9 @@ The server automatically resolves Jira keys to internal IDs using the centralize
 }}
 ```
 
-### Test Versioning (4)
+### Test Versioning (0)
 
-| Tool | Purpose | Parameters | Type | Req? | Notes |
-|------|---------|------------|------|------|-------|
-| **get_test_versions** | Retrieve all versions of a test | `issue_id` | string | ✅ | Test to get versions for |
-| **archive_test_version** | Archive specific test version | `issue_id` | string | ✅ | Test containing version |
-| | | `version_id` | int | ✅ | Version ID to archive (≥1) |
-| **restore_test_version** | Restore archived test version | `issue_id` | string | ✅ | Test containing version |
-| | | `version_id` | int | ✅ | Version ID to restore (≥1) |
-| **create_test_version_from** | Create new version from existing | `issue_id` | string | ✅ | Source test |
-| | | `source_version_id` | int | ✅ | Version to copy from (≥1) |
-| | | `version_name` | string | ✅ | Name for new version |
-
-**Example call:**
-```json
-{ "tool": "create_test_version_from", "arguments": {
-  "issue_id": "PROJ-123",
-  "source_version_id": 1,
-  "version_name": "v2.0"
-}}
-```
+**All test versioning tools are temporarily disabled.** See the [Disabled Tools](#disabled-tools) section for details on re-enabling them.
 
 ### Status & Coverage Queries (2)
 
@@ -391,6 +371,49 @@ The server automatically resolves Jira keys to internal IDs using the centralize
   "limit": 50
 }}
 ```
+
+## 🚫 Disabled Tools
+
+The following 8 tools have been temporarily disabled to comply with Cursor IDE's 40-tool limit. The functionality remains fully implemented in the codebase and can be re-enabled by uncommenting the corresponding sections in `main.py`:
+
+### Deletion Tools (4)
+| Tool | Purpose | Implementation | Status |
+|------|---------|--------------|--------|
+| **delete_test_execution** | Delete test execution | `tools/executions.py` | 🔴 Disabled |
+| **delete_test_set** | Delete test set | `tools/testsets.py` | 🔴 Disabled |
+| **delete_test_plan** | Delete test plan | `tools/plans.py` | 🔴 Disabled |
+| **delete_test_run** | Delete test run | `tools/runs.py` | 🔴 Disabled |
+
+### Test Versioning Tools (4)
+| Tool | Purpose | Implementation | Status |
+|------|---------|--------------|--------|
+| **get_test_versions** | Retrieve all versions of a test | `tools/versioning.py` | 🔴 Disabled |
+| **archive_test_version** | Archive specific test version | `tools/versioning.py` | 🔴 Disabled |
+| **restore_test_version** | Restore archived test version | `tools/versioning.py` | 🔴 Disabled |
+| **create_test_version_from** | Create new version from existing | `tools/versioning.py` | 🔴 Disabled |
+
+### Re-enabling Tools
+
+To re-enable any of these tools:
+
+1. **Locate the tool** in `main.py` (search for `# DISABLED:`)
+2. **Uncomment the tool registration** by removing the `#` from the `@self.mcp.tool()` decorator and function definition
+3. **Remove the disable comment** above the tool
+4. **Test the server** to ensure it works with the additional tool
+
+**Example**:
+```python
+# Before (disabled):
+# DISABLED: delete_test_execution tool commented out due to Cursor's 40-tool limit
+# @self.mcp.tool()
+# async def delete_test_execution(issue_id: str) -> Dict[str, Any]:
+
+# After (enabled):
+@self.mcp.tool()
+async def delete_test_execution(issue_id: str) -> Dict[str, Any]:
+```
+
+**Important**: Keep the total tool count at or below your IDE's limit. If re-enabling tools, you may need to disable others.
 
 ## Workflow Examples
 
