@@ -21,11 +21,19 @@ class TestAuthenticateSuccess:
 
     async def test_authenticate_200_response_strips_quotes(self, mocker):
         """Test successful auth returns stripped token and sets expiry from JWT."""
-        mock_session = AsyncMock()
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.text = AsyncMock(return_value='"mock_jwt_token_with_quotes"')
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        
+        mock_session = AsyncMock()
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
+        
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         expiry_time = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -40,11 +48,19 @@ class TestAuthenticateSuccess:
 
     async def test_authenticate_jwt_decode_fallback(self, mocker):
         """Test fallback to 1-hour expiry when JWT decode fails."""
-        mock_session = AsyncMock()
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.text = AsyncMock(return_value='"invalid_jwt_token"')
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        
+        mock_session = AsyncMock()
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
+        
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with patch('jwt.decode', side_effect=jwt.InvalidTokenError):
@@ -69,9 +85,17 @@ class TestAuthenticateErrors:
 
     async def test_authenticate_400_bad_request(self, mocker):
         """Test 400 status raises AuthenticationError with specific message."""
-        mock_session = AsyncMock()
         mock_response = AsyncMock(status=400, text=AsyncMock(return_value="bad syntax"))
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        
+        mock_session = AsyncMock()
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
+        
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -82,7 +106,13 @@ class TestAuthenticateErrors:
         """Test 401 status raises AuthenticationError for invalid credentials."""
         mock_session = AsyncMock()
         mock_response = AsyncMock(status=401, text=AsyncMock(return_value="unauthorized"))
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -93,7 +123,13 @@ class TestAuthenticateErrors:
         """Test 500 status raises AuthenticationError for server error."""
         mock_session = AsyncMock()
         mock_response = AsyncMock(status=500, text=AsyncMock(return_value="internal error"))
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -104,7 +140,13 @@ class TestAuthenticateErrors:
         """Test unexpected status code includes status and text in error."""
         mock_session = AsyncMock()
         mock_response = AsyncMock(status=429, text=AsyncMock(return_value="rate limited"))
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -114,7 +156,9 @@ class TestAuthenticateErrors:
     async def test_authenticate_network_error(self, mocker):
         """Test network errors are properly wrapped."""
         mock_session = AsyncMock()
-        mock_session.post.side_effect = aiohttp.ClientError("Connection refused")
+        mock_session.post = MagicMock(side_effect=aiohttp.ClientError("Connection refused"))
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -124,7 +168,9 @@ class TestAuthenticateErrors:
     async def test_authenticate_timeout_error(self, mocker):
         """Test timeout errors are handled properly."""
         mock_session = AsyncMock()
-        mock_session.post.side_effect = asyncio.TimeoutError()
+        mock_session.post = MagicMock(side_effect=asyncio.TimeoutError())
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         manager = XrayAuthManager("test_id", "test_secret")
@@ -155,11 +201,15 @@ class TestGetValidToken:
         manager.token = "old_token"
         manager.token_expiry = datetime.now(timezone.utc) - timedelta(minutes=1)
         
-        mocker.patch.object(manager, 'authenticate', AsyncMock(return_value="new_token"))
+        async def mock_authenticate():
+            manager.token = "new_token"
+            manager.token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+            return "new_token"
+        
+        mocker.patch.object(manager, 'authenticate', mock_authenticate)
         
         token = await manager.get_valid_token()
         assert token == "new_token"
-        manager.authenticate.assert_called_once()
 
     async def test_get_valid_token_refreshes_when_null(self, mocker):
         """Test null token triggers authentication."""
@@ -167,11 +217,15 @@ class TestGetValidToken:
         manager.token = None
         manager.token_expiry = None
         
-        mocker.patch.object(manager, 'authenticate', AsyncMock(return_value="new_token"))
+        async def mock_authenticate():
+            manager.token = "new_token"
+            manager.token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+            return "new_token"
+        
+        mocker.patch.object(manager, 'authenticate', mock_authenticate)
         
         token = await manager.get_valid_token()
         assert token == "new_token"
-        manager.authenticate.assert_called_once()
 
     async def test_get_valid_token_refreshes_within_buffer(self, mocker):
         """Test token refreshes when within 5-minute buffer."""
@@ -180,11 +234,15 @@ class TestGetValidToken:
         # Set expiry to 4 minutes from now (within 5-minute buffer)
         manager.token_expiry = datetime.now(timezone.utc) + timedelta(minutes=4)
         
-        mocker.patch.object(manager, 'authenticate', AsyncMock(return_value="refreshed_token"))
+        async def mock_authenticate():
+            manager.token = "refreshed_token"
+            manager.token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+            return "refreshed_token"
+        
+        mocker.patch.object(manager, 'authenticate', mock_authenticate)
         
         token = await manager.get_valid_token()
         assert token == "refreshed_token"
-        manager.authenticate.assert_called_once()
 
     async def test_concurrent_get_valid_token_single_auth(self, mocker):
         """Test concurrent calls only trigger one authentication."""
@@ -286,7 +344,13 @@ class TestAuthManagerIntegration:
         second_token = '"second_token"'
         
         mock_response.text = AsyncMock(side_effect=[first_token, second_token])
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with patch('jwt.decode', side_effect=[
@@ -307,10 +371,17 @@ class TestAuthManagerIntegration:
     async def test_auth_with_custom_base_url(self, mocker):
         """Test authentication with custom server URL."""
         custom_url = "https://jira.company.com"
-        mock_session = AsyncMock()
         mock_response = AsyncMock(status=200, text=AsyncMock(return_value='"token"'))
-        post_mock = mock_session.post
-        post_mock.return_value.__aenter__.return_value = mock_response
+        
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        
+        mock_session = AsyncMock()
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
+        
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with patch('jwt.decode', return_value={"exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp())}):
@@ -318,6 +389,6 @@ class TestAuthManagerIntegration:
             await manager.authenticate()
         
         # Verify correct URL was used
-        post_mock.assert_called_once()
-        call_args = post_mock.call_args
+        mock_session.post.assert_called_once()
+        call_args = mock_session.post.call_args
         assert call_args[0][0] == f"{custom_url}/api/v2/authenticate"

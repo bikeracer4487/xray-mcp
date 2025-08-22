@@ -159,7 +159,7 @@ class XrayAuthManager:
                             f"Authentication failed with status {response.status}: {error_text}"
                         )
 
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             # Network-level errors (connection refused, timeout, DNS failure)
             raise AuthenticationError(f"Network error during authentication: {str(e)}")
 

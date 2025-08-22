@@ -38,6 +38,8 @@ try:
         GraphQLError,
         ValidationError,
     )
+    from .errors.mcp_decorator import mcp_tool
+    from .validators.tool_validators import XrayToolValidators
 except ImportError:
     # Direct execution mode: When running as a script (python main.py)
     # Uses absolute imports from the current directory
@@ -62,6 +64,8 @@ except ImportError:
         GraphQLError,
         ValidationError,
     )
+    from errors.mcp_decorator import mcp_tool
+    from validators.tool_validators import XrayToolValidators
 
 
 class XrayMCPServer:
@@ -268,8 +272,10 @@ class XrayMCPServer:
             - validate_connection: Test API connection
 
         Error Handling:
-            All tools catch exceptions and return:
-            {"error": str(exception), "type": exception_class_name}
+            All tools use MCP error decorators that provide structured error responses
+            with self-correction hints, field validation, and example usage patterns.
+            Errors include 'error', 'message', 'hint', 'field', 'expected', 'got',
+            'retriable', and 'example_call' fields for AI self-correction.
 
         Complexity: O(n) where n is the number of tools registered
 
@@ -280,37 +286,66 @@ class XrayMCPServer:
 
         # Test Management Tools
         @self.mcp.tool()
+        @mcp_tool("get_test", docs_link="TOOLSET.md#get_test")
         async def get_test(issue_id: str) -> Dict[str, Any]:
             """Retrieve a single test by issue ID.
 
+            Supports both numeric IDs (e.g., "1162822") and Jira keys (e.g., "PROJ-123").
+            Returns detailed test information including steps, test type, and Jira metadata.
+
             Args:
-                issue_id: The Jira issue ID of the test to retrieve
+                issue_id: The Jira issue ID or key of the test to retrieve (e.g., "PROJ-123" or "1162822")
 
             Returns:
                 Test details including steps, type, and Jira information
+
+            Examples:
+                - get_test("PROJ-123") - Retrieve test by Jira key
+                - get_test("1162822") - Retrieve test by numeric ID
             """
-            try:
-                return await self.test_tools.get_test(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue_id parameter
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.test_tools.get_test(issue_id)
 
         @self.mcp.tool()
+        @mcp_tool("get_tests", docs_link="TOOLSET.md#get_tests")
         async def get_tests(
             jql: Optional[str] = None, limit: int = 100
         ) -> Dict[str, Any]:
             """Retrieve multiple tests with optional JQL filtering.
 
+            Searches for tests using Jira Query Language (JQL). Supports filtering by project,
+            status, assignee, labels, and other test attributes. Returns paginated results.
+
             Args:
-                jql: Optional JQL query to filter tests
-                limit: Maximum number of tests to return (max 100)
+                jql: Optional JQL query string to filter tests (e.g., "project = PROJ AND status = Open")
+                limit: Maximum number of tests to return, between 1 and 100 (default: 100)
 
             Returns:
-                Paginated list of tests matching the criteria
+                Paginated list of tests with metadata, including total count and results
+
+            Examples:
+                All tests: get_tests()
+                Project tests: get_tests("project = PROJ")
+                Open tests: get_tests("project = PROJ AND status = Open", limit=50)
+                By assignee: get_tests("assignee = currentUser() AND project = PROJ")
+                Recent tests: get_tests("created >= -7d AND project = PROJ")
             """
-            try:
-                return await self.test_tools.get_tests(jql, limit)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate limit parameter
+            validation_error = XrayToolValidators.validate_limit(limit, max_limit=100)
+            if validation_error:
+                return validation_error.to_dict()
+            
+            # Validate JQL if provided
+            if jql is not None:
+                validation_error = XrayToolValidators.validate_jql_query(jql, "jql")
+                if validation_error:
+                    return validation_error.to_dict()
+            
+            return await self.test_tools.get_tests(jql, limit)
 
         @self.mcp.tool()
         async def get_expanded_test(
@@ -333,6 +368,7 @@ class XrayMCPServer:
                 return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
+        @mcp_tool("create_test", docs_link="TOOLSET.md#create_test")
         async def create_test(
             project_key: str,
             summary: str,
@@ -342,57 +378,99 @@ class XrayMCPServer:
             gherkin: Optional[str] = None,
             unstructured: Optional[str] = None,
         ) -> Dict[str, Any]:
-            """Create a new test in Xray.
+            """Create a new test in Xray with comprehensive validation.
+
+            Creates tests of different types: Manual (step-by-step), Cucumber (BDD with Gherkin),
+            or Generic (unstructured). Each test type has specific requirements for content.
 
             Args:
-                project_key: Jira project key where the test will be created
-                summary: Test summary/title
-                test_type: Type of test (Generic, Manual, Cucumber, etc.)
-                description: Optional test description
-                steps: List of test steps for Manual tests (each step should have 'action', 'data', 'result')
-                gherkin: Gherkin scenario for Cucumber tests
-                unstructured: Unstructured test definition for Generic tests
+                project_key: Uppercase Jira project key (e.g., "PROJ", "TEST", "DEV")
+                summary: Descriptive test title/summary
+                test_type: Test type - "Manual" (requires steps), "Cucumber" (requires gherkin), "Generic" (default)
+                description: Optional test description or background information
+                steps: For Manual tests - JSON string or list of steps with 'action', 'data', 'result' fields
+                gherkin: For Cucumber tests - Gherkin scenario text (Feature, Scenario, Given, When, Then)
+                unstructured: For Generic tests - Free-form test definition
 
             Returns:
-                Created test information including issue ID and key
+                Created test information including issue ID, key, and validation results
+
+            Examples:
+                Manual test: create_test("PROJ", "Login test", "Manual", steps='[{"action": "Navigate to login", "data": "", "result": "Login page loads"}]')
+                Cucumber test: create_test("PROJ", "Login feature", "Cucumber", gherkin="Feature: Login\\nScenario: Successful login\\nGiven user is on login page")
+                Generic test: create_test("PROJ", "API test", "Generic", unstructured="Test POST /api/login endpoint")
             """
-            try:
-                # Handle steps parameter when passed as JSON string
-                if steps is not None and isinstance(steps, str):
-                    import json
-                    try:
-                        steps = json.loads(steps)
-                    except json.JSONDecodeError as e:
-                        return {"error": f"Invalid JSON in steps parameter: {str(e)}", "type": "JSONDecodeError"}
+            # Validate all parameters
+            validation_error = XrayToolValidators.validate_project_key(project_key)
+            if validation_error:
+                return validation_error.to_dict()
                 
-                return await self.test_tools.create_test(
-                    project_key,
-                    summary,
-                    test_type,
-                    description,
-                    steps,
-                    gherkin,
-                    unstructured,
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            validation_error = XrayToolValidators.validate_test_type(test_type)
+            if validation_error:
+                return validation_error.to_dict()
+            
+            validation_error = XrayToolValidators.validate_test_steps(steps)
+            if validation_error:
+                return validation_error.to_dict()
+            
+            validation_error = XrayToolValidators.validate_gherkin_content(gherkin)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Handle steps parameter when passed as JSON string
+            if steps is not None and isinstance(steps, str):
+                import json
+                try:
+                    steps = json.loads(steps)
+                except json.JSONDecodeError as e:
+                    try:
+                        from .errors.mcp_errors import MCPErrorBuilder
+                    except ImportError:
+                        from errors.mcp_errors import MCPErrorBuilder
+                    return MCPErrorBuilder.invalid_parameter(
+                        field="steps",
+                        expected="valid JSON string",
+                        got=f"Invalid JSON: {str(e)}",
+                        hint="Use proper JSON format: '[{\"action\": \"Step\", \"data\": \"Input\", \"result\": \"Expected\"}]'",
+                        example_call={"tool": "create_test", "arguments": {"project_key": "PROJ", "test_type": "Manual", "steps": '[{"action": "Click login", "data": "", "result": "Page loads"}]'}}
+                    ).to_dict()
+            
+            return await self.test_tools.create_test(
+                project_key,
+                summary,
+                test_type,
+                description,
+                steps,
+                gherkin,
+                unstructured,
+            )
 
         @self.mcp.tool()
+        @mcp_tool("delete_test", docs_link="TOOLSET.md#delete_test")
         async def delete_test(issue_id: str) -> Dict[str, Any]:
             """Delete a test from Xray.
+            
+            Permanently removes a test and all its associated data.
+            Use with caution as this operation cannot be undone.
 
             Args:
-                issue_id: The Jira issue ID of the test to delete
+                issue_id: The Jira issue ID or key of the test to delete (e.g., "PROJ-123" or "1162822")
 
             Returns:
-                Confirmation of deletion
+                Confirmation of deletion with status and cleanup details
+                
+            Example:
+                delete_test("PROJ-456") -> {"status": "deleted", "issue_id": "PROJ-456"}
             """
-            try:
-                return await self.test_tools.delete_test(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue_id parameter
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.test_tools.delete_test(issue_id)
 
         @self.mcp.tool()
+        @mcp_tool("update_test", docs_link="TOOLSET.md#update_test")
         async def update_test(
             issue_id: str,
             test_type: Optional[str] = None,
@@ -412,89 +490,171 @@ class XrayMCPServer:
                 test_type: New test type ("Manual", "Cucumber", "Generic")
                 gherkin: New Gherkin scenario (for Cucumber tests)
                 unstructured: New unstructured content (for Generic tests)
-                steps: New test steps (for Manual tests)
-                jira_fields: Jira fields to update (e.g., {"summary": "New title"})
+                steps: New test steps (for Manual tests) - JSON string or list of dicts
+                jira_fields: Jira fields to update (e.g., {"summary": "New title"}) - JSON string or dict
                 version_id: Specific test version to update
 
             Returns:
                 Combined update results with success status, updated fields, and warnings
+                
+            Example:
+                update_test("PROJ-123", test_type="Manual", steps='[{"action":"Login","data":"","result":"Success"}]')
             """
-            try:
-                # Handle steps parameter when passed as JSON string
-                if steps is not None and isinstance(steps, str):
-                    import json
-                    try:
-                        steps = json.loads(steps)
-                    except json.JSONDecodeError as e:
-                        return {"error": f"Invalid JSON in steps parameter: {str(e)}", "type": "JSONDecodeError"}
+            # Validate issue_id parameter
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
                 
-                # Handle jira_fields parameter when passed as JSON string
-                if jira_fields is not None and isinstance(jira_fields, str):
-                    import json
-                    try:
-                        jira_fields = json.loads(jira_fields)
-                    except json.JSONDecodeError as e:
-                        return {"error": f"Invalid JSON in jira_fields parameter: {str(e)}", "type": "JSONDecodeError"}
+            # Validate test_type if provided
+            if test_type is not None:
+                validation_error = XrayToolValidators.validate_test_type(test_type)
+                if validation_error:
+                    return validation_error.to_dict()
+                    
+            # Validate gherkin content if provided
+            if gherkin is not None:
+                validation_error = XrayToolValidators.validate_gherkin_content(gherkin)
+                if validation_error:
+                    return validation_error.to_dict()
                 
-                return await self.test_tools.update_test(
-                    issue_id, test_type, gherkin, unstructured, steps, jira_fields, version_id
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Handle steps parameter when passed as JSON string
+            if steps is not None and isinstance(steps, str):
+                import json
+                try:
+                    steps = json.loads(steps)
+                except json.JSONDecodeError as e:
+                    try:
+                        from .errors.mcp_errors import MCPErrorBuilder
+                    except ImportError:
+                        from errors.mcp_errors import MCPErrorBuilder
+                    return MCPErrorBuilder.invalid_parameter(
+                        field="steps",
+                        expected="valid JSON string",
+                        got=f"Invalid JSON: {str(e)}",
+                        hint="Use proper JSON format: '[{\"action\": \"Step\", \"data\": \"Input\", \"result\": \"Expected\"}]'",
+                        example_call={"tool": "update_test", "arguments": {"issue_id": "PROJ-123", "steps": '[{"action": "Login", "data": "", "result": "Success"}]'}}
+                    ).to_dict()
+            
+            # Handle jira_fields parameter when passed as JSON string
+            if jira_fields is not None and isinstance(jira_fields, str):
+                import json
+                try:
+                    jira_fields = json.loads(jira_fields)
+                except json.JSONDecodeError as e:
+                    try:
+                        from .errors.mcp_errors import MCPErrorBuilder
+                    except ImportError:
+                        from errors.mcp_errors import MCPErrorBuilder
+                    return MCPErrorBuilder.invalid_parameter(
+                        field="jira_fields",
+                        expected="valid JSON object",
+                        got=f"Invalid JSON: {str(e)}",
+                        hint="Use proper JSON format: '{\"summary\": \"New title\", \"priority\": {\"name\": \"High\"}}'",
+                        example_call={"tool": "update_test", "arguments": {"issue_id": "PROJ-123", "jira_fields": '{"summary": "Updated test title"}'}}
+                    ).to_dict()
+            
+            # Validate steps content if provided
+            if steps is not None:
+                validation_error = XrayToolValidators.validate_test_steps(steps)
+                if validation_error:
+                    return validation_error.to_dict()
+            
+            return await self.test_tools.update_test(
+                issue_id, test_type, gherkin, unstructured, steps, jira_fields, version_id
+            )
 
         @self.mcp.tool()
+        @mcp_tool("update_test_type", docs_link="TOOLSET.md#update_test_type")
         async def update_test_type(issue_id: str, test_type: str) -> Dict[str, Any]:
             """Update the test type of an existing test.
 
             DEPRECATED: Use update_test() instead for more comprehensive updates.
+            This tool only changes the test type and is maintained for backward compatibility.
 
             Args:
-                issue_id: The Jira issue ID of the test
-                test_type: New test type (Generic, Manual, Cucumber, etc.)
+                issue_id: The Jira issue ID or key of the test (e.g., "PROJ-123" or "1162822")
+                test_type: New test type ("Manual", "Cucumber", "Generic")
 
             Returns:
-                Updated test information
+                Updated test information with new test type
+                
+            Example:
+                update_test_type("PROJ-123", "Manual") -> {"status": "updated", "test_type": "Manual"}
             """
-            try:
-                return await self.test_tools.update_test_type(issue_id, test_type)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue_id parameter
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate test_type parameter
+            validation_error = XrayToolValidators.validate_test_type(test_type)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.test_tools.update_test_type(issue_id, test_type)
 
         # Test Execution Tools
         @self.mcp.tool()
+        @mcp_tool("get_test_execution", docs_link="TOOLSET.md#get_test_execution")
         async def get_test_execution(issue_id: str) -> Dict[str, Any]:
             """Retrieve a single test execution by issue ID.
+            
+            Returns comprehensive test execution information including associated tests,
+            execution status, environments, and metadata.
 
             Args:
-                issue_id: The Jira issue ID of the test execution
+                issue_id: The Jira issue ID or key of the test execution (e.g., "PROJ-123" or "1162822")
 
             Returns:
-                Test execution details including associated tests
+                Test execution details including associated tests, status, and execution environment
+                
+            Example:
+                get_test_execution("PROJ-456") -> {"id": 456, "summary": "Sprint 1 Tests", "tests": [...], "status": "Open"}
             """
-            try:
-                return await self.execution_tools.get_test_execution(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue_id parameter
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.execution_tools.get_test_execution(issue_id)
 
         @self.mcp.tool()
+        @mcp_tool("get_test_executions", docs_link="TOOLSET.md#get_test_executions")
         async def get_test_executions(
             jql: Optional[str] = None, limit: int = 100
         ) -> Dict[str, Any]:
             """Retrieve multiple test executions with optional JQL filtering.
+            
+            Supports complex queries to find test executions by project, status, date,
+            environment, or any Jira field using JQL syntax.
 
             Args:
-                jql: Optional JQL query to filter test executions
-                limit: Maximum number of test executions to return (max 100)
+                jql: Optional JQL query to filter test executions (e.g., "project = PROJ AND status = Open")
+                limit: Maximum number of test executions to return (1-100, default: 100)
 
             Returns:
-                Paginated list of test executions matching the criteria
+                Paginated list of test executions with metadata including total count and pagination info
+                
+            Examples:
+                get_test_executions() -> All test executions (up to 100)
+                get_test_executions("project = PROJ AND status = Open", 50) -> Open executions in project PROJ
+                get_test_executions("created >= -7d", 25) -> Recent executions from last 7 days
             """
-            try:
-                return await self.execution_tools.get_test_executions(jql, limit)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate JQL if provided
+            if jql is not None:
+                validation_error = XrayToolValidators.validate_jql_query(jql)
+                if validation_error:
+                    return validation_error.to_dict()
+                    
+            # Validate limit parameter
+            validation_error = XrayToolValidators.validate_limit(limit, max_limit=100)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.execution_tools.get_test_executions(jql, limit)
 
         @self.mcp.tool()
+        @mcp_tool("create_test_execution", docs_link="TOOLSET.md#create_test_execution")
         async def create_test_execution(
             project_key: str,
             summary: str,
@@ -503,23 +663,46 @@ class XrayMCPServer:
             description: Optional[str] = None,
         ) -> Dict[str, Any]:
             """Create a new test execution in Xray.
+            
+            Creates a test execution which can contain multiple tests and track their
+            execution results across different environments.
 
             Args:
-                project_key: Jira project key where the test execution will be created
-                summary: Test execution summary/title
-                test_issue_ids: Optional list of test issue IDs to include
-                test_environments: Optional list of test environments
+                project_key: Jira project key where the test execution will be created (e.g., "PROJ", "TEST")
+                summary: Test execution summary/title (e.g., "Sprint 3 Regression Tests")
+                test_issue_ids: Optional list of test issue IDs to include (e.g., ["PROJ-123", "PROJ-456"])
+                test_environments: Optional list of test environments (e.g., ["Production", "Staging"])
                 description: Optional test execution description
 
             Returns:
-                Created test execution information including issue ID and key
+                Created test execution information including issue ID, key, and included tests
+                
+            Examples:
+                create_test_execution("PROJ", "Sprint 1 Tests") -> Basic execution
+                create_test_execution("PROJ", "Regression Suite", ["PROJ-123", "PROJ-456"], ["Staging"]) -> Full execution
             """
-            try:
-                return await self.execution_tools.create_test_execution(
-                    project_key, summary, test_issue_ids, test_environments, description
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate project_key parameter
+            validation_error = XrayToolValidators.validate_project_key(project_key)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate test issue IDs if provided
+            if test_issue_ids is not None:
+                for issue_id in test_issue_ids:
+                    validation_error = XrayToolValidators.validate_issue_id(issue_id)
+                    if validation_error:
+                        return validation_error.to_dict()
+                        
+            # Validate environments if provided
+            if test_environments is not None:
+                for env in test_environments:
+                    validation_error = XrayToolValidators.validate_environment_name(env)
+                    if validation_error:
+                        return validation_error.to_dict()
+                
+            return await self.execution_tools.create_test_execution(
+                project_key, summary, test_issue_ids, test_environments, description
+            )
 
         # DISABLED: delete_test_execution tool commented out due to Cursor's 40-tool limit
         # @self.mcp.tool()
@@ -538,173 +721,267 @@ class XrayMCPServer:
         #         return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
+        @mcp_tool("add_tests_to_execution", docs_link="TOOLSET.md#add_tests_to_execution")
         async def add_tests_to_execution(
             execution_issue_id: str, test_issue_ids: List[str]
         ) -> Dict[str, Any]:
             """Add tests to an existing test execution.
+            
+            Adds one or more tests to an existing test execution. The tests will be
+            available for execution within that test execution context.
 
             Args:
-                execution_issue_id: The Jira issue ID of the test execution
-                test_issue_ids: List of test issue IDs to add to the execution
+                execution_issue_id: The Jira issue ID or key of the test execution (e.g., "PROJ-456")
+                test_issue_ids: List of test issue IDs to add (e.g., ["PROJ-123", "PROJ-789"])
 
             Returns:
-                Information about added tests and any warnings
+                Information about successfully added tests, any warnings, and execution summary
+                
+            Example:
+                add_tests_to_execution("PROJ-456", ["PROJ-123", "PROJ-789"]) -> {"added": 2, "warnings": []}
             """
-            try:
-                return await self.execution_tools.add_tests_to_execution(
-                    execution_issue_id, test_issue_ids
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate execution issue ID
+            validation_error = XrayToolValidators.validate_issue_id(execution_issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate all test issue IDs
+            for test_id in test_issue_ids:
+                validation_error = XrayToolValidators.validate_issue_id(test_id)
+                if validation_error:
+                    return validation_error.to_dict()
+                    
+            return await self.execution_tools.add_tests_to_execution(
+                execution_issue_id, test_issue_ids
+            )
 
         @self.mcp.tool()
+        @mcp_tool("remove_tests_from_execution", docs_link="TOOLSET.md#remove_tests_from_execution")
         async def remove_tests_from_execution(
             execution_issue_id: str, test_issue_ids: List[str]
         ) -> Dict[str, Any]:
             """Remove tests from an existing test execution.
+            
+            Removes one or more tests from a test execution. This does not delete
+            the tests themselves, just removes them from the execution scope.
 
             Args:
-                execution_issue_id: The Jira issue ID of the test execution
-                test_issue_ids: List of test issue IDs to remove from the execution
+                execution_issue_id: The Jira issue ID or key of the test execution (e.g., "PROJ-456")
+                test_issue_ids: List of test issue IDs to remove (e.g., ["PROJ-123", "PROJ-789"])
 
             Returns:
-                Confirmation of removal
+                Confirmation of removal with count of successfully removed tests
+                
+            Example:
+                remove_tests_from_execution("PROJ-456", ["PROJ-123"]) -> {"removed": 1, "status": "success"}
             """
-            try:
-                return await self.execution_tools.remove_tests_from_execution(
-                    execution_issue_id, test_issue_ids
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate execution issue ID
+            validation_error = XrayToolValidators.validate_issue_id(execution_issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate all test issue IDs
+            for test_id in test_issue_ids:
+                validation_error = XrayToolValidators.validate_issue_id(test_id)
+                if validation_error:
+                    return validation_error.to_dict()
+                    
+            return await self.execution_tools.remove_tests_from_execution(
+                execution_issue_id, test_issue_ids
+            )
 
         # Utility Tools
         @self.mcp.tool()
+        @mcp_tool("execute_jql_query", docs_link="TOOLSET.md#execute_jql_query")
         async def execute_jql_query(
             jql: str, entity_type: str = "test", limit: int = 100
         ) -> Dict[str, Any]:
-            """Execute a custom JQL query for different entity types.
+            """Execute a custom JQL query for different Xray entity types.
+
+            Executes Jira Query Language (JQL) queries against Xray entities. Supports filtering
+            by any Jira/Xray field including custom fields, dates, and relationships.
 
             Args:
-                jql: JQL query string
-                entity_type: Type of entity to query (test, testexecution)
-                limit: Maximum number of results to return (max 100)
+                jql: JQL query string (e.g., "project = PROJ AND status = Open AND created >= -30d")
+                entity_type: Type of entity to query - "test" or "testexecution" (default: "test")
+                limit: Maximum results to return, between 1 and 100 (default: 100)
 
             Returns:
-                Query results matching the JQL criteria
+                Query results with metadata, pagination info, and structured entity data
+
+            Examples:
+                Tests by project: execute_jql_query("project = PROJ")
+                Recent executions: execute_jql_query("created >= -7d", "testexecution")
+                Failed tests: execute_jql_query("project = PROJ AND 'Test Execution Status' = FAIL", "test")
+                Complex query: execute_jql_query("assignee = currentUser() AND labels = smoke AND priority = High")
             """
-            try:
-                return await self.utility_tools.execute_jql_query(
-                    jql, entity_type, limit
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate JQL query
+            validation_error = XrayToolValidators.validate_jql_query(jql, "jql")
+            if validation_error:
+                return validation_error.to_dict()
+            
+            # Validate entity_type
+            validation_error = XrayToolValidators.validate_entity_type(entity_type)
+            if validation_error:
+                return validation_error.to_dict()
+            
+            # Validate limit
+            validation_error = XrayToolValidators.validate_limit(limit, max_limit=100)
+            if validation_error:
+                return validation_error.to_dict()
+            
+            return await self.utility_tools.execute_jql_query(jql, entity_type, limit)
 
         @self.mcp.tool()
+        @mcp_tool("validate_connection", docs_link="TOOLSET.md#validate_connection")
         async def validate_connection() -> Dict[str, Any]:
             """Test connection and authentication with Xray API.
+            
+            Verifies that the Xray API credentials are valid and the service is reachable.
+            Use this tool to diagnose authentication or connectivity issues.
 
             Returns:
-                Connection status and authentication information
+                Connection status, authentication information, and API health details
+                
+            Example:
+                validate_connection() -> {"status": "connected", "authenticated": true, "api_version": "v1"}
             """
-            try:
-                return await self.utility_tools.validate_connection()
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            return await self.utility_tools.validate_connection()
 
         # Precondition Tools
         @self.mcp.tool()
+        @mcp_tool("get_preconditions", docs_link="TOOLSET.md#get_preconditions")
         async def get_preconditions(
             issue_id: str, start: int = 0, limit: int = 100
         ) -> Dict[str, Any]:
             """Retrieve preconditions for a test.
+            
+            Returns all preconditions associated with a test, which define
+            the required state or conditions before test execution.
 
             Args:
-                issue_id: The Jira issue ID of the test
-                start: Starting index for pagination (0-based)
-                limit: Maximum number of preconditions to return (max 100)
+                issue_id: The Jira issue ID or key of the test (e.g., "PROJ-123" or "1162822")
+                start: Starting index for pagination, 0-based (default: 0)
+                limit: Maximum number of preconditions to return, 1-100 (default: 100)
 
             Returns:
-                Paginated list of preconditions for the test
+                Paginated list of preconditions with condition text, type, and metadata
+                
+            Example:
+                get_preconditions("PROJ-123", 0, 50) -> {"preconditions": [...], "total": 5, "start": 0}
             """
-            try:
-                return await self.precondition_tools.get_preconditions(
-                    issue_id, start, limit
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue ID
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate limit parameter
+            validation_error = XrayToolValidators.validate_limit(limit, max_limit=100)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.precondition_tools.get_preconditions(
+                issue_id, start, limit
+            )
 
         @self.mcp.tool()
+        @mcp_tool("create_precondition", docs_link="TOOLSET.md#create_precondition")
         async def create_precondition(
             issue_id: str, precondition_input: Dict[str, Any]
         ) -> Dict[str, Any]:
             """Create a new precondition for a test.
+            
+            Creates a precondition that defines required state or setup
+            before a test can be executed successfully.
 
             Args:
-                issue_id: The Jira issue ID of the test
-                precondition_input: Precondition data containing condition and type information
+                issue_id: The Jira issue ID or key of the test (e.g., "PROJ-123")
+                precondition_input: Precondition data with 'condition' text and 'type' fields
 
             Returns:
-                Created precondition information
+                Created precondition information including ID and content
+                
+            Example:
+                create_precondition("PROJ-123", {"condition": "User must be logged in", "type": "Manual"})
             """
-            try:
-                return await self.precondition_tools.create_precondition(
-                    issue_id, precondition_input
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue ID
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.precondition_tools.create_precondition(
+                issue_id, precondition_input
+            )
 
         @self.mcp.tool()
+        @mcp_tool("update_precondition", docs_link="TOOLSET.md#update_precondition")
         async def update_precondition(
             precondition_id: str, precondition_input: Dict[str, Any]
         ) -> Dict[str, Any]:
             """Update an existing precondition.
+            
+            Modifies the content or properties of an existing precondition
+            while preserving its associations with tests.
 
             Args:
-                precondition_id: The ID of the precondition to update
-                precondition_input: Updated precondition data
+                precondition_id: The unique ID of the precondition to update (e.g., "12345")
+                precondition_input: Updated precondition data with 'condition' text and 'type'
 
             Returns:
-                Updated precondition information
+                Updated precondition information with new content and metadata
+                
+            Example:
+                update_precondition("12345", {"condition": "User must have admin rights", "type": "Manual"})
             """
-            try:
-                return await self.precondition_tools.update_precondition(
-                    precondition_id, precondition_input
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            return await self.precondition_tools.update_precondition(
+                precondition_id, precondition_input
+            )
 
         @self.mcp.tool()
+        @mcp_tool("delete_precondition", docs_link="TOOLSET.md#delete_precondition")
         async def delete_precondition(precondition_id: str) -> Dict[str, Any]:
             """Delete a precondition.
+            
+            Permanently removes a precondition from the system.
+            Use with caution as this cannot be undone.
 
             Args:
-                precondition_id: The ID of the precondition to delete
+                precondition_id: The unique ID of the precondition to delete (e.g., "12345")
 
             Returns:
-                Confirmation of deletion
+                Confirmation of deletion with status information
+                
+            Example:
+                delete_precondition("12345") -> {"status": "deleted", "precondition_id": "12345"}
             """
-            try:
-                return await self.precondition_tools.delete_precondition(
-                    precondition_id
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            return await self.precondition_tools.delete_precondition(
+                precondition_id
+            )
 
         # Test Set Tools
         @self.mcp.tool()
+        @mcp_tool("get_test_set", docs_link="TOOLSET.md#get_test_set")
         async def get_test_set(issue_id: str) -> Dict[str, Any]:
             """Retrieve a single test set by issue ID.
+            
+            Returns detailed information about a test set including all
+            associated tests and organizational metadata.
 
             Args:
-                issue_id: The Jira issue ID of the test set
+                issue_id: The Jira issue ID or key of the test set (e.g., "PROJ-123" or "1162822")
 
             Returns:
-                Test set details including associated tests
+                Test set details including associated tests, summary, and metadata
+                
+            Example:
+                get_test_set("PROJ-456") -> {"id": 456, "summary": "Smoke Tests", "tests": [...], "status": "Open"}
             """
-            try:
-                return await self.testset_tools.get_test_set(issue_id)
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue ID
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.testset_tools.get_test_set(issue_id)
 
         @self.mcp.tool()
         async def get_test_sets(
@@ -725,6 +1002,7 @@ class XrayMCPServer:
                 return {"error": str(e), "type": type(e).__name__}
 
         @self.mcp.tool()
+        @mcp_tool("create_test_set", docs_link="TOOLSET.md#create_test_set")
         async def create_test_set(
             project_key: str,
             summary: str,
@@ -732,43 +1010,68 @@ class XrayMCPServer:
             description: Optional[str] = None,
         ) -> Dict[str, Any]:
             """Create a new test set in Xray.
+            
+            Creates a test set to organize and group related tests for better
+            management and execution planning.
 
             Args:
-                project_key: Jira project key where the test set will be created
-                summary: Test set summary/title
-                test_issue_ids: Optional list of test issue IDs to include
-                description: Optional test set description
+                project_key: Jira project key where the test set will be created (e.g., "PROJ", "TEST")
+                summary: Test set summary/title (e.g., "Smoke Test Suite", "Regression Tests")
+                test_issue_ids: Optional list of test issue IDs to include (e.g., ["PROJ-123", "PROJ-456"])
+                description: Optional test set description with additional context
 
             Returns:
-                Created test set information including issue ID and key
+                Created test set information including issue ID, key, and included tests
+                
+            Examples:
+                create_test_set("PROJ", "Smoke Tests") -> Basic test set
+                create_test_set("PROJ", "Login Suite", ["PROJ-123", "PROJ-456"]) -> Test set with tests
             """
-            try:
-                return await self.testset_tools.create_test_set(
-                    project_key, summary, test_issue_ids, description
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate project_key parameter
+            validation_error = XrayToolValidators.validate_project_key(project_key)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            # Validate test issue IDs if provided
+            if test_issue_ids is not None:
+                for issue_id in test_issue_ids:
+                    validation_error = XrayToolValidators.validate_issue_id(issue_id)
+                    if validation_error:
+                        return validation_error.to_dict()
+                        
+            return await self.testset_tools.create_test_set(
+                project_key, summary, test_issue_ids, description
+            )
 
         @self.mcp.tool()
+        @mcp_tool("update_test_set", docs_link="TOOLSET.md#update_test_set")
         async def update_test_set(
             issue_id: str, summary: str, description: Optional[str] = None
         ) -> Dict[str, Any]:
             """Update an existing test set.
+            
+            Modifies the summary, description, or other properties of a test set
+            while preserving its test associations.
 
             Args:
-                issue_id: The Jira issue ID of the test set
-                summary: New test set summary/title
-                description: Optional new test set description
+                issue_id: The Jira issue ID or key of the test set (e.g., "PROJ-123")
+                summary: New test set summary/title (e.g., "Updated Smoke Tests")
+                description: Optional new test set description with updated context
 
             Returns:
-                Updated test set information
+                Updated test set information with new properties and metadata
+                
+            Example:
+                update_test_set("PROJ-456", "Enhanced Smoke Tests", "Updated for v2.0") -> Updated test set
             """
-            try:
-                return await self.testset_tools.update_test_set(
-                    issue_id, summary, description
-                )
-            except Exception as e:
-                return {"error": str(e), "type": type(e).__name__}
+            # Validate issue ID
+            validation_error = XrayToolValidators.validate_issue_id(issue_id)
+            if validation_error:
+                return validation_error.to_dict()
+                
+            return await self.testset_tools.update_test_set(
+                issue_id, summary, description
+            )
 
         # DISABLED: delete_test_set tool commented out due to Cursor's 40-tool limit
         # @self.mcp.tool()

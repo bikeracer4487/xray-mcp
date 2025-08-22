@@ -9,6 +9,7 @@ auth_manager and handles both GraphQL-level and HTTP-level errors appropriately.
 """
 
 import json
+import asyncio
 import aiohttp
 from typing import Dict, Any, Optional
 
@@ -131,7 +132,14 @@ class XrayGraphQLClient:
                     self.endpoint, json=payload, headers=headers
                 ) as response:
                     if response.status == 200:
-                        result = await response.json()
+                        try:
+                            result = await response.json()
+                        except ValueError as e:
+                            # Handle malformed JSON responses
+                            error_text = await response.text()
+                            raise GraphQLError(
+                                f"Invalid JSON in response: {str(e)}: {error_text}"
+                            )
 
                         # GraphQL can return 200 OK with errors in the response
                         # Check for GraphQL-level errors and report them
@@ -152,7 +160,7 @@ class XrayGraphQLClient:
                             f"GraphQL request failed with status {response.status}: {error_text}"
                         )
 
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             # Network-level errors (connection, timeout, etc.)
             raise GraphQLError(f"Network error during GraphQL request: {str(e)}")
 

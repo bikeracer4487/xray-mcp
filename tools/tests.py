@@ -100,6 +100,23 @@ class TestTools:
         self.client = graphql_client
         self.id_resolver = IssueIdResolver(graphql_client)
 
+    async def _resolve_issue_id(self, identifier: str) -> str:
+        """Resolve Jira key or issue ID to numeric issue ID.
+
+        Internal method that delegates to the id_resolver for backward
+        compatibility with tests and internal usage patterns.
+
+        Args:
+            identifier: Either a Jira key (e.g., "TEST-123") or numeric issue ID
+
+        Returns:
+            str: Numeric issue ID for GraphQL operations
+
+        Raises:
+            GraphQLError: If identifier cannot be resolved
+        """
+        return await self.id_resolver.resolve_issue_id(identifier)
+
 
     async def get_test(self, issue_id: str) -> Dict[str, Any]:
         """Retrieve a single test by issue ID or Jira key.

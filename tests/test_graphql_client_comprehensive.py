@@ -4,7 +4,7 @@ Tests cover query execution, error handling, and edge cases.
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 
 from client.graphql import XrayGraphQLClient
@@ -34,7 +34,12 @@ class TestExecuteQuerySuccess:
             status=200,
             json=AsyncMock(return_value={"data": {"test": "result"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         result = await client.execute_query("query { test }")
@@ -55,7 +60,12 @@ class TestExecuteQuerySuccess:
             status=200,
             json=AsyncMock(return_value={"data": {"result": "value"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         variables = {"id": "TEST-123", "limit": 10}
@@ -78,7 +88,12 @@ class TestExecuteQuerySuccess:
             status=200,
             json=AsyncMock(return_value={"data": {}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         result = await client.execute_query("query { empty }")
@@ -119,7 +134,12 @@ class TestExecuteQueryErrors:
                 ]
             })
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="GraphQL errors: Field 'invalid' doesn't exist; Syntax error at line 1"):
@@ -136,7 +156,12 @@ class TestExecuteQueryErrors:
                 "errors": [{"message": "Some field failed"}]
             })
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         # GraphQL spec: even with partial data, errors should be raised
@@ -151,7 +176,12 @@ class TestExecuteQueryErrors:
             status=400,
             text=AsyncMock(return_value="Bad GraphQL query syntax")
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="GraphQL request failed with status 400: Bad GraphQL query syntax"):
@@ -165,7 +195,12 @@ class TestExecuteQueryErrors:
             status=401,
             text=AsyncMock(return_value="Token expired or invalid")
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="GraphQL request failed with status 401: Token expired or invalid"):
@@ -179,7 +214,12 @@ class TestExecuteQueryErrors:
             status=500,
             text=AsyncMock(return_value="Internal server error")
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="GraphQL request failed with status 500: Internal server error"):
@@ -189,7 +229,16 @@ class TestExecuteQueryErrors:
         """Test network connectivity errors."""
         client = XrayGraphQLClient(mock_auth_manager)
         mock_session = AsyncMock()
-        mock_session.post.side_effect = aiohttp.ClientError("Connection refused")
+        
+        class MockPostContextError:
+            async def __aenter__(self):
+                raise aiohttp.ClientError("Connection refused")
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                return None
+        
+        mock_session.post = MagicMock(return_value=MockPostContextError())
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="Network error during GraphQL request: Connection refused"):
@@ -199,7 +248,17 @@ class TestExecuteQueryErrors:
         """Test request timeout handling."""
         client = XrayGraphQLClient(mock_auth_manager)
         mock_session = AsyncMock()
-        mock_session.post.side_effect = aiohttp.ClientTimeout
+        
+        class MockPostContextTimeout:
+            async def __aenter__(self):
+                import asyncio
+                raise asyncio.TimeoutError("Request timeout")
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                return None
+        
+        mock_session.post = MagicMock(return_value=MockPostContextTimeout())
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError, match="Network error during GraphQL request"):
@@ -222,7 +281,12 @@ class TestExecuteQueryEdgeCases:
             status=200,
             json=AsyncMock(return_value=large_data)
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         result = await client.execute_query("query { getLargeDataset }")
@@ -236,7 +300,12 @@ class TestExecuteQueryEdgeCases:
             status=200,
             json=AsyncMock(return_value={"data": {"test": "ok"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         result = await client.execute_query("query { test }", None)
@@ -254,7 +323,12 @@ class TestExecuteQueryEdgeCases:
             status=200,
             json=AsyncMock(return_value={"data": {"test": "ok"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         result = await client.execute_query("query { test }", {})
@@ -271,7 +345,12 @@ class TestExecuteQueryEdgeCases:
         mock_response = AsyncMock(status=200)
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = AsyncMock(return_value="Not JSON content")
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         with pytest.raises(GraphQLError):
@@ -290,7 +369,12 @@ class TestExecuteQueryEdgeCases:
             status=200,
             json=AsyncMock(return_value={"data": {"test": "ok"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         # Make two requests
@@ -322,7 +406,12 @@ class TestGraphQLClientIntegration:
             status=200,
             json=AsyncMock(return_value={"data": {"test": "ok"}})
         )
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.return_value = mock_response
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         await client.execute_query("query { test }")
@@ -341,7 +430,12 @@ class TestGraphQLClientIntegration:
             AsyncMock(status=200, json=AsyncMock(return_value={"data": {"test": i}}))
             for i in range(5)
         ]
-        mock_session.post.return_value.__aenter__.side_effect = responses
+        mock_post_context = AsyncMock()
+        mock_post_context.__aenter__.side_effect = responses
+        mock_post_context.__aexit__.return_value = None
+        mock_session.post = MagicMock(return_value=mock_post_context)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.__aexit__.return_value = None
         mocker.patch('aiohttp.ClientSession', return_value=mock_session)
         
         # Execute 5 concurrent queries

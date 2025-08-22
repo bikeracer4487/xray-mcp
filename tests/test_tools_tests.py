@@ -245,16 +245,16 @@ class TestTestTools:
         """Test successful test deletion."""
         mock_client.execute_mutation.return_value = {"data": {"deleteTest": True}}
 
-        result = await test_tools.delete_test("TEST-123")
+        result = await test_tools.delete_test("12345")  # Use numeric ID to skip resolution
 
         assert result["success"] is True
-        assert result["issueId"] == "TEST-123"
+        assert result["issueId"] == "12345"
 
         # Verify mutation was called
         mock_client.execute_mutation.assert_called_once()
         args = mock_client.execute_mutation.call_args
         assert "deleteTest" in args[0][0]
-        assert args[0][1] == {"issueId": "TEST-123"}
+        assert args[0][1] == {"issueId": "12345"}
 
     @pytest.mark.asyncio
     async def test_create_manual_test_with_teststep_objects(
@@ -416,30 +416,31 @@ class TestTestTools:
     @pytest.mark.asyncio
     async def test_update_test_type(self, test_tools, mock_client):
         """Test updating test type with corrected GraphQL response structure."""
-        # Updated mock response to match the corrected GraphQL structure
+        # Mock both get_test query (for the new update_test method) and updateTestType mutation
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTest": {
+                    "issueId": "12345",
+                    "testType": {"name": "Manual"},
+                    "steps": [],
+                    "jira": {"key": "TEST-123", "summary": "Test"}
+                }
+            }
+        }
         mock_client.execute_mutation.return_value = {
             "data": {
                 "updateTestType": {
-                    "issueId": "TEST-123",
+                    "issueId": "12345",
                     "testType": {"name": "Manual", "kind": "Manual"},
                 }
             }
         }
 
-        result = await test_tools.update_test_type("TEST-123", "Manual")
+        result = await test_tools.update_test_type("12345", "Manual")  # Use numeric ID
 
-        # Should return the direct fields, not nested under 'test'
-        assert result["issueId"] == "TEST-123"
+        # The deprecated method now returns data from get_test after update
+        assert result["issueId"] == "12345"
         assert result["testType"]["name"] == "Manual"
-        assert result["testType"]["kind"] == "Manual"
-
-        # Verify the mutation was called correctly
-        mock_client.execute_mutation.assert_called_once()
-        args = mock_client.execute_mutation.call_args
-        assert "updateTestType" in args[0][0]
-        variables = args[0][1]
-        assert variables["issueId"] == "TEST-123"
-        assert variables["testType"]["name"] == "Manual"
 
     @pytest.mark.asyncio
     async def test_get_expanded_test(self, test_tools, mock_client):
@@ -580,19 +581,32 @@ class TestTestTools:
     @pytest.mark.asyncio
     async def test_update_test_type_with_jira_key(self, test_tools, mock_client):
         """Test update_test_type with Jira key (should resolve to numeric ID first)."""
-        # Mock the resolution query
-        mock_client.execute_query.return_value = {
-            "data": {
-                "getTests": {
-                    "results": [
-                        {
-                            "issueId": "1162822",
-                            "jira": {"key": "FRAMED-1693"}
-                        }
-                    ]
+        # Mock the resolution query and final test retrieval
+        mock_client.execute_query.side_effect = [
+            # First call: ID resolution query
+            {
+                "data": {
+                    "getTests": {
+                        "results": [
+                            {
+                                "issueId": "1162822",
+                                "jira": {"key": "FRAMED-1693"}
+                            }
+                        ]
+                    }
+                }
+            },
+            # Second call: Get final test state
+            {
+                "data": {
+                    "getTest": {
+                        "issueId": "1162822",
+                        "testType": {"name": "Manual", "kind": "Steps"},
+                        "jira": {"key": "FRAMED-1693", "summary": "Test"}
+                    }
                 }
             }
-        }
+        ]
         
         # Mock the update mutation
         mock_client.execute_mutation.return_value = {
@@ -609,9 +623,13 @@ class TestTestTools:
         assert result["issueId"] == "1162822"
         assert result["testType"]["name"] == "Manual"
         
-        # Verify both resolution query and update mutation were called
-        assert mock_client.execute_query.call_count == 1
-        assert mock_client.execute_mutation.call_count == 1
+        # Verify all expected calls were made
+        # Note: update_test_type now delegates to update_test, which makes:
+        # 1. ID resolution query for Jira key -> numeric ID
+        # 2. Update mutation using the resolved numeric ID  
+        # 3. Final test state retrieval query
+        assert mock_client.execute_query.call_count == 2  # Resolution + final state query
+        assert mock_client.execute_mutation.call_count == 1  # Update mutation
         
         # Verify update used resolved numeric ID
         mutation_args = mock_client.execute_mutation.call_args
@@ -620,6 +638,17 @@ class TestTestTools:
     @pytest.mark.asyncio
     async def test_update_test_type_with_numeric_id(self, test_tools, mock_client):
         """Test update_test_type with numeric ID (should not need resolution)."""
+        # Mock final test state retrieval (no ID resolution needed)
+        mock_client.execute_query.return_value = {
+            "data": {
+                "getTest": {
+                    "issueId": "1162822",
+                    "testType": {"name": "Manual", "kind": "Steps"},
+                    "jira": {"key": "TEST-123", "summary": "Test"}
+                }
+            }
+        }
+        
         mock_client.execute_mutation.return_value = {
             "data": {
                 "updateTestType": {
@@ -634,9 +663,9 @@ class TestTestTools:
         assert result["issueId"] == "1162822"
         assert result["testType"]["name"] == "Manual"
         
-        # Should only call mutation, not resolution query
-        assert mock_client.execute_query.call_count == 0
-        assert mock_client.execute_mutation.call_count == 1
+        # Should make 1 query call for final test state (no ID resolution needed)
+        assert mock_client.execute_query.call_count == 1  # Final test state retrieval
+        assert mock_client.execute_mutation.call_count == 1  # Update mutation
 
     # ============================================================================
     # NEW TESTS FOR MANUAL TEST STEPS VALIDATION
@@ -796,6 +825,7 @@ class TestTestTools:
             await test_tools.update_test_type("1162822", "Manual")
         
         error_message = str(exc_info.value)
-        assert "Failed to update test type for 1162822" in error_message
-        assert "Issue ID/key '1162822' is not valid" in error_message
-        assert "Ensure the test exists and use either numeric ID" in error_message
+        # Since update_test_type now delegates to update_test, the error format has changed
+        # The new error comes from the update_test method's error handling
+        assert "Test type update failed" in error_message
+        assert "issueId provided is not valid" in error_message

@@ -138,3 +138,6 @@ tests/TEST_SUMMARY.md
 
 # macOS files
 .DS_Store
+
+# Node Modules
+node_modules
