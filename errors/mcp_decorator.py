@@ -11,18 +11,26 @@ import json
 from typing import Dict, Any, Callable, TypeVar, Union, Optional
 import logging
 
-# Handle both package and direct execution import modes
+# Centralized import handling
 try:
-    from .mcp_errors import MCPErrorResponse, MCPErrorBuilder, MCPErrorName
-    from ..exceptions import (
-        XrayMCPError,
-        AuthenticationError,
-        GraphQLError,
-        ValidationError,
-        ConnectionError,
-        RateLimitError
-    )
+    from ..utils.imports import import_from
+    error_imports = import_from(".mcp_errors", "errors.mcp_errors", 
+        "MCPErrorResponse", "MCPErrorBuilder", "MCPErrorName")
+    exception_imports = import_from("..exceptions", "exceptions",
+        "XrayMCPError", "AuthenticationError", "GraphQLError", "ValidationError", 
+        "ConnectionError", "RateLimitError")
+    
+    MCPErrorResponse = error_imports['MCPErrorResponse']
+    MCPErrorBuilder = error_imports['MCPErrorBuilder']
+    MCPErrorName = error_imports['MCPErrorName']
+    XrayMCPError = exception_imports['XrayMCPError']
+    AuthenticationError = exception_imports['AuthenticationError']
+    GraphQLError = exception_imports['GraphQLError']
+    ValidationError = exception_imports['ValidationError']
+    ConnectionError = exception_imports['ConnectionError']
+    RateLimitError = exception_imports['RateLimitError']
 except ImportError:
+    # Fallback for direct execution
     try:
         from mcp_errors import MCPErrorResponse, MCPErrorBuilder, MCPErrorName
         from exceptions import (

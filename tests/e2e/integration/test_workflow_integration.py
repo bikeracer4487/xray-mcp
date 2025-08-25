@@ -8,7 +8,7 @@ with visual verification to ensure end-to-end functionality.
 import pytest
 from playwright.async_api import Page
 
-from fixtures.mcp_client import XrayMCPClient, TestType
+from fixtures.mcp_client import XrayMCPClient, XrayTestType
 from fixtures.visual_validators import XrayVisualValidator, ValidationLevel
 
 
@@ -31,7 +31,7 @@ class TestWorkflowIntegration:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.MANUAL,
+            test_type=XrayTestType.MANUAL,
             description=test_data["description"],
             steps=test_data["steps"]
         )
@@ -149,7 +149,7 @@ class TestWorkflowIntegration:
             create_response = await mcp_client.create_test(
                 project_key=test_data["project_key"],
                 summary=test_data["summary"],
-                test_type=TestType.GENERIC,
+                test_type=XrayTestType.GENERIC,
                 unstructured=test_data["unstructured"]
             )
             
@@ -241,7 +241,7 @@ class TestWorkflowIntegration:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.CUCUMBER,
+            test_type=XrayTestType.CUCUMBER,
             description=test_data["description"],
             gherkin=initial_gherkin
         )
@@ -331,7 +331,7 @@ class TestWorkflowIntegration:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             description=test_data["description"],
             unstructured=test_data["unstructured"]
         )
@@ -438,11 +438,11 @@ class TestWorkflowIntegration:
         
         # Phase 1: Create multiple tests of different types
         test_configs = [
-            {"type": TestType.GENERIC, "template": "generic_test"},
-            {"type": TestType.MANUAL, "template": "manual_test"},
-            {"type": TestType.CUCUMBER, "template": "cucumber_test"},
-            {"type": TestType.GENERIC, "template": "generic_test"},
-            {"type": TestType.MANUAL, "template": "manual_test"}
+            {"type": XrayTestType.GENERIC, "template": "generic_test"},
+            {"type": XrayTestType.MANUAL, "template": "manual_test"},
+            {"type": XrayTestType.CUCUMBER, "template": "cucumber_test"},
+            {"type": XrayTestType.GENERIC, "template": "generic_test"},
+            {"type": XrayTestType.MANUAL, "template": "manual_test"}
         ]
         
         created_tests = []
@@ -459,11 +459,11 @@ class TestWorkflowIntegration:
             }
             
             # Add type-specific content
-            if config["type"] == TestType.GENERIC:
+            if config["type"] == XrayTestType.GENERIC:
                 create_kwargs["unstructured"] = test_data["unstructured"]
-            elif config["type"] == TestType.MANUAL:
+            elif config["type"] == XrayTestType.MANUAL:
                 create_kwargs["steps"] = test_data["steps"]
-            elif config["type"] == TestType.CUCUMBER:
+            elif config["type"] == XrayTestType.CUCUMBER:
                 create_kwargs["gherkin"] = test_data["gherkin"]
             
             create_response = await mcp_client.create_test(**create_kwargs)
@@ -557,7 +557,7 @@ class TestWorkflowIntegration:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -589,7 +589,7 @@ class TestWorkflowIntegration:
                 "kwargs": {
                     "project_key": "NONEXISTENT",
                     "summary": "Invalid project test",
-                    "test_type": TestType.GENERIC,
+                    "test_type": XrayTestType.GENERIC,
                     "unstructured": "Test content"
                 }
             },

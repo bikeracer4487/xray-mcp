@@ -8,7 +8,7 @@ in the Jira Xray UI with correct content, formatting, and structure.
 import pytest
 from playwright.async_api import Page
 
-from fixtures.mcp_client import XrayMCPClient, TestType
+from fixtures.mcp_client import XrayMCPClient, XrayTestType
 from fixtures.visual_validators import XrayVisualValidator, ValidationLevel
 
 
@@ -30,7 +30,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             description=test_data["description"],
             unstructured=test_data["unstructured"]
         )
@@ -78,7 +78,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.MANUAL,
+            test_type=XrayTestType.MANUAL,
             description=test_data["description"],
             steps=test_data["steps"]
         )
@@ -134,7 +134,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.CUCUMBER,
+            test_type=XrayTestType.CUCUMBER,
             description=test_data["description"],
             gherkin=test_data["gherkin"]
         )
@@ -197,7 +197,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             description=test_data["description"],
             unstructured=test_data["unstructured"]
         )
@@ -245,7 +245,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -315,7 +315,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -396,7 +396,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.CUCUMBER,
+            test_type=XrayTestType.CUCUMBER,
             gherkin=test_data["gherkin"]
         )
         
@@ -448,7 +448,7 @@ class TestTestDisplay:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         

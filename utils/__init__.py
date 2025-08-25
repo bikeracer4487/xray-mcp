@@ -1,5 +1,5 @@
 """Shared utilities for Xray MCP server."""
 
-from .id_resolver import IssueIdResolver
+from .imports import ImportManager, safe_import, import_from, get_common_imports, get_xray_imports
 
-__all__ = ["IssueIdResolver"]
+__all__ = ["ImportManager", "safe_import", "import_from", "get_common_imports", "get_xray_imports"]

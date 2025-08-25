@@ -11,17 +11,21 @@ providing a clean interface for test case management through the MCP protocol.
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
 
-# Handle both package and direct execution import modes
+# Centralized import handling
 try:
-    from ..client import XrayGraphQLClient
-    from ..exceptions import GraphQLError, ValidationError
-    from ..validators import validate_jql
-    from ..utils import IssueIdResolver
+    from ..utils.imports import get_xray_imports
+    imports = get_xray_imports()
+    XrayGraphQLClient = imports['XrayGraphQLClient']
+    GraphQLError = imports['GraphQLError']
+    ValidationError = imports['ValidationError'] 
+    validate_jql = imports['validate_jql']
+    IssueIdResolver = imports['IssueIdResolver']
 except ImportError:
+    # Fallback for direct execution
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
-    from utils import IssueIdResolver
+    from utils.id_resolver import IssueIdResolver
 
 
 @dataclass

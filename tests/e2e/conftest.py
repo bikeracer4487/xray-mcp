@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 # Import test utilities
 from fixtures.mcp_client import XrayMCPClient
 from fixtures.xray_stub import XrayStub
-from fixtures.test_data_manager import TestDataManager
+from fixtures.test_data_manager import DataLifecycleManager
 from fixtures.visual_validators import XrayVisualValidator
 
 
@@ -204,9 +204,9 @@ async def test_data_manager(test_config):
         test_config: Test configuration
         
     Returns:
-        TestDataManager: Test data management utility
+        DataLifecycleManager: Test data management utility
     """
-    manager = TestDataManager(
+    manager = DataLifecycleManager(
         project_key=test_config["test_project"],
         prefix=test_config["test_data_prefix"],
         label=test_config["test_label"],

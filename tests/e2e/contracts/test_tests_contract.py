@@ -9,7 +9,7 @@ import pytest
 import json
 from typing import Dict, Any, List
 
-from fixtures.mcp_client import XrayMCPClient, TestResponse, TestType
+from fixtures.mcp_client import XrayMCPClient, MCPResponse, XrayTestType
 
 
 @pytest.mark.contract
@@ -38,7 +38,7 @@ class TestTestsContract:
         response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             description=test_data["description"],
             unstructured=test_data["unstructured"]
         )
@@ -74,7 +74,7 @@ class TestTestsContract:
         response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.MANUAL,
+            test_type=XrayTestType.MANUAL,
             description=test_data["description"],
             steps=test_data["steps"]
         )
@@ -111,7 +111,7 @@ class TestTestsContract:
         response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.CUCUMBER,
+            test_type=XrayTestType.CUCUMBER,
             description=test_data["description"],
             gherkin=test_data["gherkin"]
         )
@@ -144,7 +144,7 @@ class TestTestsContract:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -183,7 +183,7 @@ class TestTestsContract:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -225,7 +225,7 @@ class TestTestsContract:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -261,7 +261,7 @@ class TestTestsContract:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.CUCUMBER,
+            test_type=XrayTestType.CUCUMBER,
             gherkin=test_data["gherkin"]
         )
         
@@ -296,7 +296,7 @@ class TestTestsContract:
         create_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -360,7 +360,7 @@ class TestTestsContract:
         response = await mcp_client.create_test(
             project_key=invalid_project,
             summary=test_data_manager.generate_unique_title("Invalid Project Test"),
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured="Test content"
         )
         
@@ -395,8 +395,8 @@ class TestTestsContract:
             })
             
             # Should return error response, not crash
-            assert isinstance(response, TestResponse), \
-                "Malformed tool call should return TestResponse"
+            assert isinstance(response, MCPResponse), \
+                "Malformed tool call should return MCPResponse"
             assert not response.success, \
                 "Malformed tool call should not succeed"
             assert response.error is not None, \

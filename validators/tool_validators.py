@@ -11,17 +11,33 @@ from typing import Optional, Dict, Any, List, Union
 from datetime import datetime
 
 # Handle both package and direct execution import modes
+# Centralized import handling
 try:
-    from ..errors.mcp_errors import MCPErrorResponse, MCPErrorBuilder, MCPValidationHelper
-    from ..exceptions import ValidationError
-    from .jql_validator import validate_jql as validate_jql_safe
+    from ..utils.imports import import_from
+    error_imports = import_from("..errors.mcp_errors", "errors.mcp_errors", 
+        "MCPErrorResponse", "MCPErrorBuilder", "MCPValidationHelper")
+    exception_imports = import_from("..exceptions", "exceptions", "ValidationError")
+    jql_imports = import_from(".jql_validator", "validators.jql_validator", "validate_jql")
+    sanitizer_imports = import_from("..security.input_sanitizer", "security.input_sanitizer", 
+        "sanitize_input", "sanitize_json_input", "sanitize_url_input")
+    
+    MCPErrorResponse = error_imports['MCPErrorResponse']
+    MCPErrorBuilder = error_imports['MCPErrorBuilder']
+    MCPValidationHelper = error_imports['MCPValidationHelper']
+    ValidationError = exception_imports['ValidationError']
+    validate_jql_safe = jql_imports['validate_jql']
+    sanitize_input = sanitizer_imports['sanitize_input']
+    sanitize_json_input = sanitizer_imports['sanitize_json_input']
+    sanitize_url_input = sanitizer_imports['sanitize_url_input']
 except ImportError:
+    # Fallback for direct execution
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from errors.mcp_errors import MCPErrorResponse, MCPErrorBuilder, MCPValidationHelper
     from exceptions import ValidationError
     from validators.jql_validator import validate_jql as validate_jql_safe
+    from security.input_sanitizer import sanitize_input, sanitize_json_input, sanitize_url_input
 
 
 class XrayToolValidators:
@@ -68,7 +84,7 @@ class XrayToolValidators:
     
     @staticmethod
     def validate_summary(summary: str) -> Optional[MCPErrorResponse]:
-        """Validate summary/title parameter.
+        """Validate and sanitize summary/title parameter.
         
         Args:
             summary: The summary to validate
@@ -89,6 +105,22 @@ class XrayToolValidators:
                 expected="string",
                 got=str(type(summary).__name__),
                 hint="Summary must be a descriptive string.",
+                example_call={"tool": "create_test", "arguments": {"summary": "Test login functionality"}}
+            )
+        
+        # Sanitize the summary for security
+        try:
+            sanitized_summary = sanitize_input(summary, "summary")
+            if sanitized_summary != summary:
+                # Log that sanitization occurred but continue with validation
+                pass
+            summary = sanitized_summary or ""
+        except ValidationError as e:
+            return MCPErrorBuilder.invalid_parameter(
+                field="summary",
+                expected="safe text content",
+                got="potentially dangerous content",
+                hint=f"Summary contains unsafe content: {str(e)}",
                 example_call={"tool": "create_test", "arguments": {"summary": "Test login functionality"}}
             )
         

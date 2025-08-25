@@ -9,7 +9,7 @@ import pytest
 import json
 from typing import Dict, Any, List
 
-from fixtures.mcp_client import XrayMCPClient, TestResponse, TestType
+from fixtures.mcp_client import XrayMCPClient, MCPResponse, XrayTestType
 
 
 @pytest.mark.contract
@@ -65,7 +65,7 @@ class TestExecutionsContract:
             test_response = await mcp_client.create_test(
                 project_key=test_data["project_key"],
                 summary=test_data["summary"],
-                test_type=TestType.GENERIC,
+                test_type=XrayTestType.GENERIC,
                 unstructured=test_data["unstructured"]
             )
             
@@ -171,7 +171,7 @@ class TestExecutionsContract:
             test_response = await mcp_client.create_test(
                 project_key=test_data["project_key"],
                 summary=test_data["summary"],
-                test_type=TestType.GENERIC,
+                test_type=XrayTestType.GENERIC,
                 unstructured=test_data["unstructured"]
             )
             
@@ -211,7 +211,7 @@ class TestExecutionsContract:
             test_response = await mcp_client.create_test(
                 project_key=test_data["project_key"],
                 summary=test_data["summary"],
-                test_type=TestType.GENERIC,
+                test_type=XrayTestType.GENERIC,
                 unstructured=test_data["unstructured"]
             )
             
@@ -320,7 +320,7 @@ class TestExecutionsContract:
         test_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -362,7 +362,7 @@ class TestExecutionsContract:
         test_response = await mcp_client.create_test(
             project_key=test_data["project_key"],
             summary=test_data["summary"],
-            test_type=TestType.GENERIC,
+            test_type=XrayTestType.GENERIC,
             unstructured=test_data["unstructured"]
         )
         
@@ -379,8 +379,8 @@ class TestExecutionsContract:
         
         # Assert response (may or may not have execution status for new test)
         # This tests the contract, not necessarily successful execution
-        assert isinstance(status_response, TestResponse), \
-            "Status response should be TestResponse instance"
+        assert isinstance(status_response, MCPResponse), \
+            "Status response should be MCPResponse instance"
         
         if status_response.success:
             assert isinstance(status_response.data, dict), \
@@ -425,7 +425,7 @@ class TestExecutionsContract:
             test_response = await mcp_client.create_test(
                 project_key=test_data["project_key"],
                 summary=test_data["summary"],
-                test_type=TestType.GENERIC,
+                test_type=XrayTestType.GENERIC,
                 unstructured=test_data["unstructured"]
             )
             

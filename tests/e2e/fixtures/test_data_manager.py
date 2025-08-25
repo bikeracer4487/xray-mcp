@@ -17,7 +17,7 @@ import string
 
 
 @dataclass
-class TestResource:
+class TrackedResource:
     """Represents a test resource that needs cleanup."""
     resource_type: str  # test, execution, plan, set, etc.
     resource_id: str    # Issue ID or key
@@ -25,7 +25,7 @@ class TestResource:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-class TestDataManager:
+class DataLifecycleManager:
     """Manages test data lifecycle and cleanup."""
     
     def __init__(
@@ -56,8 +56,8 @@ class TestDataManager:
         self.session_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         
         # Track created resources
-        self.created_resources: Dict[str, TestResource] = {}
-        self.cleanup_queue: List[TestResource] = []
+        self.created_resources: Dict[str, TrackedResource] = {}
+        self.cleanup_queue: List[TrackedResource] = []
     
     def generate_unique_title(self, base_title: str) -> str:
         """
@@ -329,7 +329,7 @@ Scenario: Default test case
             resource_id: Resource ID or key
             metadata: Additional metadata about the resource
         """
-        resource = TestResource(
+        resource = TrackedResource(
             resource_type=resource_type,
             resource_id=resource_id,
             created_at=datetime.now(),
@@ -339,7 +339,7 @@ Scenario: Default test case
         self.created_resources[resource_id] = resource
         self.cleanup_queue.append(resource)
     
-    def get_tracked_resources(self, resource_type: Optional[str] = None) -> List[TestResource]:
+    def get_tracked_resources(self, resource_type: Optional[str] = None) -> List[TrackedResource]:
         """
         Get tracked resources, optionally filtered by type.
         

@@ -110,6 +110,8 @@ Test your setup with the validation tool:
 
 The server currently provides 40 MCP tools organized into 12 categories for comprehensive Xray test management. All tools return structured error responses: `{"error": "message", "type": "ErrorType"}`.
 
+📖 **For comprehensive tool documentation with detailed parameters, examples, and usage patterns, see [TOOLSET.md](TOOLSET.md)**
+
 **Note**: 8 tools have been temporarily disabled due to Cursor IDE's 40-tool limit restriction. See the [Disabled Tools](#disabled-tools) section for details.
 
 ### 🔗 ID Format Support

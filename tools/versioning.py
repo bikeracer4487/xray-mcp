@@ -14,11 +14,11 @@ from typing import Dict, Any, List, Optional
 try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
-    from ..utils import IssueIdResolver
+    from ..utils.id_resolver import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
-    from utils import IssueIdResolver
+    from utils.id_resolver import IssueIdResolver
 
 
 class TestVersioningTools:

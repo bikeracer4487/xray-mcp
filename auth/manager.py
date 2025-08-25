@@ -16,11 +16,17 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
-# Handle both package and direct execution import modes
+# Centralized import handling
 try:
-    from ..exceptions import AuthenticationError
+    from ..utils.imports import import_from
+    imports = import_from("..exceptions", "exceptions", "AuthenticationError")
+    pool_imports = import_from("..utils.connection_pool", "utils.connection_pool", "get_connection_pool")
+    AuthenticationError = imports['AuthenticationError']
+    get_connection_pool = pool_imports['get_connection_pool']
 except ImportError:
+    # Fallback for direct execution
     from exceptions import AuthenticationError
+    from utils.connection_pool import get_connection_pool
 
 
 class XrayAuthManager:
@@ -76,6 +82,13 @@ class XrayAuthManager:
         self._token_lock = (
             asyncio.Lock()
         )  # Prevents race conditions during token refresh
+        self._pool_manager = None
+
+    async def _get_pool_manager(self):
+        """Get connection pool manager, initializing if needed."""
+        if self._pool_manager is None:
+            self._pool_manager = await get_connection_pool()
+        return self._pool_manager
 
     async def authenticate(self) -> str:
         """Authenticate with Xray API and obtain a JWT token.
@@ -111,7 +124,9 @@ class XrayAuthManager:
         payload = {"client_id": self.client_id, "client_secret": self.client_secret}
 
         try:
-            async with aiohttp.ClientSession() as session:
+            # Use connection pool for improved performance
+            pool_manager = await self._get_pool_manager()
+            async with pool_manager.session_context() as session:
                 async with session.post(
                     auth_url, json=payload, headers={"Content-Type": "application/json"}
                 ) as response:

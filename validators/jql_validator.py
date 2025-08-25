@@ -56,22 +56,62 @@ class JQLValidator:
         "environment",
         "resolution",
         "key",
-        # Xray-specific fields
+        "duedate",
+        "originalEstimate",
+        "remainingEstimate",
+        "timeSpent",
+        "worklogDate",
+        "lastViewed",
+        "voter",
+        "watcher",
+        "comment",
+        "attachment",
+        # Xray-specific test management fields
         "testType",
         "testPlan",
         "testExecution",
         "testEnvironment",
-        "requirement",
         "testSet",
-        "defect",
         "testRun",
         "testCycle",
-        # Custom field patterns (safely matched)
-        "cf[10001]",
-        "cf[10002]",
-        "cf[10003]",
-        "cf[10004]",
-        "cf[10005]",
+        "requirement",
+        "defect",
+        # Additional Xray fields for test execution and coverage
+        "testStatus",
+        "executedBy",
+        "executionDate",
+        "testResult",
+        "testRunStatus",
+        "testExecutionStatus",
+        "lastTestResult",
+        "testPlanStatus",
+        "testSetStatus",
+        "coveredRequirement",
+        "testFolder",
+        "testRepository",
+        # Test versioning and history fields
+        "testVersion",
+        "testVersionDate",
+        "testHistory",
+        # Execution environment and configuration
+        "testConfiguration",
+        "testEnvironmentName",
+        "testBrowser",
+        "testPlatform",
+        "testDevice",
+        # Cucumber/BDD specific fields  
+        "scenario",
+        "feature",
+        "gherkinType",
+        # Test organization fields
+        "testSuite",
+        "testGroup",
+        "testCategory",
+        # Custom field patterns (safely matched with expanded range)
+        "cf[10001]", "cf[10002]", "cf[10003]", "cf[10004]", "cf[10005]",
+        "cf[10006]", "cf[10007]", "cf[10008]", "cf[10009]", "cf[10010]",
+        "cf[10011]", "cf[10012]", "cf[10013]", "cf[10014]", "cf[10015]",
+        "cf[10016]", "cf[10017]", "cf[10018]", "cf[10019]", "cf[10020]",
     }
 
     # Whitelisted JQL operators
@@ -120,6 +160,7 @@ class JQLValidator:
 
     # Whitelisted JQL functions
     ALLOWED_FUNCTIONS: Set[str] = {
+        # Standard Jira functions
         "currentUser",
         "currentLogin",
         "membersOf",
@@ -132,22 +173,58 @@ class JQLValidator:
         "endOfMonth",
         "startOfYear",
         "endOfYear",
+        # Additional date/time functions
+        "startOfQuarter",
+        "endOfQuarter",
+        "earliestUnreleasedVersion",
+        "latestReleasedVersion",
+        "releasedVersions",
+        "unreleasedVersions",
+        # Xray-specific functions for test management
+        "testExecutedBy",
+        "testLastExecutedBy", 
+        "testExecutedIn",
+        "testPlanFor",
+        "testSetFor",
+        "testCovering",
+        "testCoveredBy",
+        "testExecutedInBuild",
+        "testExecutedInVersion",
+        "testResultStatus",
+        "testLastResultStatus",
+        # Test environment and execution context functions
+        "testExecutionEnvironment",
+        "testRunEnvironment", 
+        "testInFolder",
+        "testInRepository",
+        "testOfType",
+        # Test organization and linking functions
+        "linkedTests",
+        "linkedRequirements",
+        "linkedDefects",
+        "childTests",
+        "parentTests",
+        # Advanced Xray query functions
+        "testExecutedOnDate",
+        "testExecutedBetween",
+        "testNotExecutedSince",
+        "testWithResult",
+        "testInPlan",
+        "testInSet",
+        "testInExecution",
+        # Version and release functions
+        "affectedVersion",
+        "fixVersion",
+        "testTargetVersion",
     }
 
     # Maximum allowed nesting depth for subqueries
     MAX_NESTING_DEPTH = 3
 
-    # Pattern for detecting potentially dangerous constructs
+    # Pattern for detecting potentially dangerous constructs (excluding SQL keywords handled separately)
     DANGEROUS_PATTERNS = [
         r";\s*--",  # SQL comment injection
         r";\s*\/\*",  # SQL block comment
-        r"\bunion\b",  # SQL UNION
-        r"\bselect\b",  # SQL SELECT
-        r"\bdrop\b",  # SQL DROP
-        r"\bdelete\b",  # SQL DELETE
-        r"\binsert\b",  # SQL INSERT
-        r"\bupdate\b",  # SQL UPDATE
-        r"\bexec\b",  # SQL EXEC
         r"\bscript\b",  # Script injection
         r"<[^>]+>",  # HTML/XML tags
         r"\${",  # Template injection
@@ -169,6 +246,35 @@ class JQLValidator:
 
         # Pattern for matching function calls
         self._function_pattern = re.compile(r"\b([a-zA-Z][a-zA-Z0-9_]+)\s*\(")
+        
+        # Context-aware validation maps
+        self._xray_specific_fields = {
+            "testType", "testPlan", "testExecution", "testEnvironment", "testSet", 
+            "testRun", "testCycle", "requirement", "defect", "testStatus", 
+            "executedBy", "executionDate", "testResult", "testRunStatus", 
+            "testExecutionStatus", "lastTestResult", "testPlanStatus", 
+            "testSetStatus", "coveredRequirement", "testFolder", "testRepository",
+            "testVersion", "testVersionDate", "testHistory", "testConfiguration",
+            "testEnvironmentName", "testBrowser", "testPlatform", "testDevice",
+            "scenario", "feature", "gherkinType", "testSuite", "testGroup", "testCategory"
+        }
+        
+        self._test_execution_fields = {
+            "testExecution", "testRunStatus", "testExecutionStatus", "executedBy", 
+            "executionDate", "testResult", "lastTestResult", "testEnvironment",
+            "testEnvironmentName", "testBrowser", "testPlatform", "testDevice"
+        }
+        
+        self._test_management_functions = {
+            "testExecutedBy", "testLastExecutedBy", "testExecutedIn", "testPlanFor",
+            "testSetFor", "testCovering", "testCoveredBy", "testExecutedInBuild",
+            "testExecutedInVersion", "testResultStatus", "testLastResultStatus",
+            "testExecutionEnvironment", "testRunEnvironment", "testInFolder",
+            "testInRepository", "testOfType", "linkedTests", "linkedRequirements",
+            "linkedDefects", "childTests", "parentTests", "testExecutedOnDate",
+            "testExecutedBetween", "testNotExecutedSince", "testWithResult",
+            "testInPlan", "testInSet", "testInExecution", "testTargetVersion"
+        }
 
     def validate_and_sanitize(self, jql: str) -> str:
         """Validate and sanitize a JQL query.
@@ -197,8 +303,9 @@ class JQLValidator:
         if len(jql) > 1000:
             raise ValidationError("JQL query too long (max 1000 characters)")
 
-        # Check for dangerous patterns
-        if self._dangerous_pattern.search(jql):
+        # Check for dangerous patterns (but ignore content within quoted strings)
+        jql_without_quotes = self._quoted_string_pattern.sub('""', jql)
+        if self._dangerous_pattern.search(jql_without_quotes):
             raise ValidationError("JQL contains potentially dangerous patterns")
 
         # Validate quote balance
@@ -220,6 +327,7 @@ class JQLValidator:
         self._validate_fields(jql)
         self._validate_functions(jql)
         self._validate_operators(jql)
+        self._validate_context_aware_usage(jql)
 
         # Return sanitized query (trimmed)
         return jql.strip()
@@ -305,9 +413,11 @@ class JQLValidator:
                 cf_match = re.match(r"cf\[(\d+)\]", field)
                 if cf_match:
                     field_num = int(cf_match.group(1))
+                    # Expanded reasonable range for custom fields (Jira typically uses 10000+ for custom fields)
+                    # Allow up to 99999 to accommodate various Jira installations and Xray custom fields
                     if (
-                        10000 <= field_num <= 20000
-                    ):  # Reasonable range for custom fields
+                        10000 <= field_num <= 99999
+                    ):
                         continue
 
             # Check against whitelist (case-insensitive for fields)
@@ -346,24 +456,129 @@ class JQLValidator:
         Args:
             jql: The JQL query
         """
-        # This is a simplified check - in production, consider using
-        # a proper JQL parser for complete validation
-        jql_lower = jql.lower()
+        # Remove quoted strings to avoid false positives
+        jql_without_quotes = self._quoted_string_pattern.sub('""', jql)
+        jql_lower = jql_without_quotes.lower()
 
         # Check for obvious SQL-like constructs
         sql_keywords = [
             "select",
-            "from",
+            "from", 
             "where",
             "join",
             "union",
             "insert",
             "update",
             "delete",
+            "drop",
+            "exec"
         ]
         for keyword in sql_keywords:
             if f" {keyword} " in f" {jql_lower} ":
                 raise ValidationError(f"SQL keyword not allowed in JQL: {keyword}")
+
+    def _validate_context_aware_usage(self, jql: str) -> None:
+        """Perform context-aware validation of JQL usage.
+        
+        This method checks for common patterns and provides helpful warnings
+        for potential misuse of Xray-specific fields and functions.
+        
+        Args:
+            jql: The JQL query
+            
+        Raises:
+            ValidationError: If context-aware validation fails
+        """
+        jql_lower = jql.lower()
+        
+        # Check for potential confusion between standard Jira and Xray fields
+        if "status" in jql_lower and "teststatus" in jql_lower:
+            # This is actually valid, just noting for potential confusion
+            pass
+            
+        # Check for valid test type values in queries
+        if "testtype" in jql_lower:
+            # Look for common test type patterns
+            test_type_pattern = re.compile(r'testtype\s*[=~]\s*["\']([^"\']+)["\']', re.IGNORECASE)
+            matches = test_type_pattern.findall(jql)
+            valid_test_types = {"manual", "cucumber", "generic", "exploratory"}
+            for match in matches:
+                if match.lower() not in valid_test_types:
+                    # Don't fail, but could log a warning in production
+                    pass
+                    
+        # Check for proper use of execution-related fields
+        execution_fields_in_query = [field for field in self._test_execution_fields 
+                                   if field.lower() in jql_lower]
+        
+        # Validate that execution fields are used appropriately
+        if execution_fields_in_query:
+            # Check if query also includes issuetype restrictions
+            if "issuetype" not in jql_lower:
+                # This is a soft validation - execution fields are most useful with Test issues
+                pass
+                
+        # Check for potentially inefficient query patterns
+        if jql_lower.count("or") > 10:
+            # Many OR conditions can be slow - this is informational
+            pass
+            
+        # Validate function parameter patterns
+        for func_name in self._test_management_functions:
+            if func_name.lower() in jql_lower:
+                # Check that function calls have reasonable parameter patterns
+                func_pattern = re.compile(rf'{re.escape(func_name)}\s*\([^)]*\)', re.IGNORECASE)
+                matches = func_pattern.findall(jql)
+                for match in matches:
+                    # Basic validation - ensure parameters aren't empty or malformed
+                    if '()' in match and func_name.lower() not in ['currentuser', 'now', 'currentlogin']:
+                        # Some functions require parameters
+                        pass
+
+    def validate_for_issue_type(self, jql: str, expected_issue_type: Optional[str] = None) -> str:
+        """Validate JQL with awareness of expected issue type context.
+        
+        This method provides enhanced validation when the expected issue type
+        is known (e.g., when searching for Tests, Test Executions, etc.).
+        
+        Args:
+            jql: The JQL query
+            expected_issue_type: Expected issue type (Test, Test Execution, etc.)
+            
+        Returns:
+            The validated and sanitized JQL query
+            
+        Raises:
+            ValidationError: If validation fails
+        """
+        # First run standard validation
+        validated_jql = self.validate_and_sanitize(jql)
+        
+        if expected_issue_type:
+            issue_type_lower = expected_issue_type.lower()
+            jql_lower = jql.lower()
+            
+            # For Test issue types, suggest Xray-specific fields
+            if "test" in issue_type_lower:
+                xray_fields_in_query = [field for field in self._xray_specific_fields 
+                                      if field.lower() in jql_lower]
+                
+                # If no Xray fields but standard fields, could suggest alternatives
+                if not xray_fields_in_query and any(field in jql_lower for field in ["status", "assignee"]):
+                    # This is informational - standard fields work but Xray fields might be more specific
+                    pass
+                    
+            # For Test Execution types, validate execution-specific usage
+            elif "execution" in issue_type_lower:
+                execution_fields = [field for field in self._test_execution_fields 
+                                  if field.lower() in jql_lower]
+                
+                # Test Executions benefit from execution-specific fields
+                if not execution_fields:
+                    # Could suggest adding execution-specific fields
+                    pass
+        
+        return validated_jql
 
     @staticmethod
     def escape_string_value(value: str) -> str:

@@ -15,12 +15,12 @@ try:
     from ..client import XrayGraphQLClient
     from ..exceptions import GraphQLError, ValidationError
     from ..validators import validate_jql
-    from ..utils import IssueIdResolver
+    from ..utils.id_resolver import IssueIdResolver
 except ImportError:
     from client import XrayGraphQLClient
     from exceptions import GraphQLError, ValidationError
     from validators import validate_jql
-    from utils import IssueIdResolver
+    from utils.id_resolver import IssueIdResolver
 
 
 class TestRunTools:

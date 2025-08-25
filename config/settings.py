@@ -9,11 +9,22 @@ The configuration system supports multiple deployment scenarios:
 - Local development with .env files
 - Container deployments with environment variables
 - Programmatic configuration for testing
+
+Enhanced security features:
+- Secure credential validation and sanitization
+- Automatic credential masking in logs
+- Security pattern detection
 """
 
 import os
 from dataclasses import dataclass
 from typing import Optional
+
+# Centralized import handling
+try:
+    from ..security.credential_manager import get_secure_credentials, SecureCredentials
+except ImportError:
+    from security.credential_manager import get_secure_credentials, SecureCredentials
 
 
 @dataclass
@@ -95,6 +106,45 @@ class XrayConfig:
             client_secret=client_secret,
             base_url=os.getenv("XRAY_BASE_URL", "https://xray.cloud.getxray.app"),
         )
+
+    @classmethod
+    def from_secure_env(cls) -> "XrayConfig":
+        """Create configuration using secure credential management.
+
+        This method leverages the secure credential manager for enhanced
+        security features including validation, sanitization, and secure
+        logging. Recommended for production environments.
+
+        Returns:
+            XrayConfig: Securely validated configuration instance
+
+        Raises:
+            ValueError: If credentials are invalid or missing
+            SecurityError: If potential security issues are detected
+
+        Complexity: O(1) - Credential validation and creation
+
+        Example:
+            # Uses secure credential validation
+            config = XrayConfig.from_secure_env()
+        """
+        # Get securely managed credentials
+        secure_creds = get_secure_credentials()
+        
+        return cls(
+            client_id=secure_creds.client_id,
+            client_secret=secure_creds.client_secret,
+            base_url=secure_creds.base_url,
+        )
+
+    def __str__(self) -> str:
+        """String representation with masked credentials."""
+        masked_secret = f"{self.client_secret[:4]}...{self.client_secret[-4:]}" if len(self.client_secret) > 8 else "***masked***"
+        return f"XrayConfig(client_id={self.client_id[:8]}..., client_secret={masked_secret}, base_url={self.base_url})"
+
+    def __repr__(self) -> str:
+        """Representation with masked credentials."""
+        return self.__str__()
 
     @classmethod
     def from_params(
