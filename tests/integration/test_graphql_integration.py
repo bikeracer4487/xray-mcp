@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import os
 from dotenv import load_dotenv
 from src.auth import XrayAuth
@@ -9,7 +10,7 @@ load_dotenv()
 class TestXrayGraphQLIntegration:
     """Integration tests for GraphQL client against live API."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def client(self):
         """Create authenticated GraphQL client."""
         auth = XrayAuth(
