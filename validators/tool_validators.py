@@ -624,6 +624,30 @@ class XrayToolValidators:
         return None
     
     @staticmethod
+    def validate_project_key(project_key: str) -> Optional[MCPErrorResponse]:
+        """Validate Jira project key format.
+        
+        Args:
+            project_key: The project key to validate
+            
+        Returns:
+            MCPErrorResponse if invalid, None if valid
+        """
+        return MCPValidationHelper.validate_project_key(project_key)
+    
+    @staticmethod
+    def validate_test_type(test_type: str) -> Optional[MCPErrorResponse]:
+        """Validate test type parameter.
+        
+        Args:
+            test_type: The test type to validate
+            
+        Returns:
+            MCPErrorResponse if invalid, None if valid
+        """
+        return MCPValidationHelper.validate_test_type(test_type)
+    
+    @staticmethod
     def validate_entity_type(entity_type: str) -> Optional[MCPErrorResponse]:
         """Validate entity type for JQL queries.
         

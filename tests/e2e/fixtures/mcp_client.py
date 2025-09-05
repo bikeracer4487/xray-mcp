@@ -46,20 +46,22 @@ class XrayMCPClient:
         self.server_url = server_url
         self.timeout = timeout
         self.client: Optional[Client] = None
-        self._session: Optional[httpx.AsyncClient] = None
+        self._client_context = None
     
     async def connect(self):
-        """Connect to MCP server."""
-        self._session = httpx.AsyncClient(timeout=self.timeout)
-        self.client = Client(self.server_url, session=self._session)
-        await self.client.connect()
+        """Connect to MCP server using context manager."""
+        # FastMCP Client uses async context manager
+        self.client = Client(f"{self.server_url}/mcp", timeout=self.timeout)
+        await self.client.__aenter__()
     
     async def disconnect(self):
         """Disconnect from MCP server."""
         if self.client:
-            await self.client.disconnect()
-        if self._session:
-            await self._session.aclose()
+            try:
+                await self.client.__aexit__(None, None, None)
+            except Exception:
+                # Ignore teardown errors as they don't affect test results
+                pass
     
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPResponse:
         """
@@ -75,18 +77,98 @@ class XrayMCPClient:
         try:
             result = await self.client.call_tool(tool_name, arguments)
             
+            # Handle case where result is directly a list of TextContent objects
+            if isinstance(result, list):
+                for item in result:
+                    if hasattr(item, 'text'):
+                        try:
+                            # Parse JSON from TextContent.text
+                            data = json.loads(item.text)
+                            return MCPResponse(success=True, data=data)
+                        except json.JSONDecodeError:
+                            # If not valid JSON, return as raw text
+                            return MCPResponse(success=True, data={"raw": item.text})
+                    elif hasattr(item, 'type') and item.type == 'text':
+                        # Handle different TextContent formats
+                        text_content = getattr(item, 'text', str(item))
+                        try:
+                            data = json.loads(text_content)
+                            return MCPResponse(success=True, data=data)
+                        except json.JSONDecodeError:
+                            return MCPResponse(success=True, data={"raw": text_content})
+                
+                # Fallback: return the whole list as raw
+                return MCPResponse(success=True, data={"raw": str(result)})
+            
             # Parse the response based on MCP result format
-            if hasattr(result, 'content'):
+            elif hasattr(result, 'content'):
                 # Handle FastMCP ToolResult format
                 content_list = result.content if isinstance(result.content, list) else [result.content]
                 
                 for item in content_list:
                     if hasattr(item, 'text'):
                         try:
+                            # Parse JSON from TextContent.text
                             data = json.loads(item.text)
                             return MCPResponse(success=True, data=data)
                         except json.JSONDecodeError:
+                            # If not valid JSON, return as raw text
                             return MCPResponse(success=True, data={"raw": item.text})
+                    elif hasattr(item, 'type') and item.type == 'text':
+                        # Handle different TextContent formats
+                        text_content = getattr(item, 'text', str(item))
+                        try:
+                            data = json.loads(text_content)
+                            return MCPResponse(success=True, data=data)
+                        except json.JSONDecodeError:
+                            return MCPResponse(success=True, data={"raw": text_content})
+                
+                # If no text content found, try to parse the raw content
+                try:
+                    # Handle case where content is a string representation of TextContent objects
+                    content_str = str(result.content)
+                    if 'TextContent(' in content_str and 'text=' in content_str:
+                        
+                        # Find text=' and extract until the closing quote considering escapes
+                        text_start = content_str.find("text='")
+                        if text_start != -1:
+                            text_start += 6  # Move past "text='"
+                            
+                            # Find the closing quote, accounting for escaped quotes
+                            text_end = -1
+                            i = text_start
+                            while i < len(content_str):
+                                if content_str[i] == "'" and (i == text_start or content_str[i-1] != '\\'):
+                                    text_end = i
+                                    break
+                                elif content_str[i] == '\\' and i + 1 < len(content_str):
+                                    i += 2  # Skip the escaped character
+                                else:
+                                    i += 1
+                            
+                            if text_end != -1:
+                                json_text = content_str[text_start:text_end]
+                                # Decode the escaped string - order matters!
+                                # First handle double backslashes, then specific escapes
+                                json_text = json_text.replace('\\\\\\\\', '\\')  # \\\\ -> \
+                                json_text = json_text.replace('\\\\n', '\n')     # \\n -> newline
+                                json_text = json_text.replace('\\\\"', '"')      # \\" -> "
+                                json_text = json_text.replace("\\\\'", "'")      # \\' -> '
+                                
+                                try:
+                                    data = json.loads(json_text)
+                                    return MCPResponse(success=True, data=data)
+                                except json.JSONDecodeError:
+                                    # Try alternative approach - remove the problematic apostrophe
+                                    fixed_text = json_text.replace("\\'t", "'t")  # Fix specific case
+                                    try:
+                                        data = json.loads(fixed_text)
+                                        return MCPResponse(success=True, data=data)
+                                    except json.JSONDecodeError:
+                                        pass
+                                    
+                except (json.JSONDecodeError, AttributeError, IndexError):
+                    pass
                 
                 # Fallback for non-text content
                 return MCPResponse(success=True, data={"content": str(result.content)})

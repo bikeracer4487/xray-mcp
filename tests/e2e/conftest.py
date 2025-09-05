@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Dict, Any, Generator, AsyncGenerator, List, Optional
 import pytest
+import pytest_asyncio
 import signal
 import requests
 from dotenv import load_dotenv
@@ -106,8 +107,8 @@ def mcp_server_process(test_config):
     except (ValueError, IndexError):
         port = 8000
     
-    # Start the MCP server
-    cmd = ["python", "main.py", "--port", str(port)]
+    # Start the MCP server in HTTP mode
+    cmd = ["python", "http_server.py", "--port", str(port)]
     
     # Start server in project root directory
     server_process = subprocess.Popen(
@@ -154,7 +155,7 @@ def mcp_server_process(test_config):
                 pass
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mcp_client(mcp_server_process, test_config):
     """
     Create MCP client for individual test functions.
@@ -195,7 +196,7 @@ def xray_stub(test_config):
         stub.teardown()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_data_manager(test_config):
     """
     Create test data manager for resource lifecycle management.
@@ -220,7 +221,7 @@ async def test_data_manager(test_config):
         await manager.cleanup()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def visual_validator(test_config, page):
     """
     Create visual validator for Playwright-based verification.
@@ -263,7 +264,7 @@ def browser_context_args(test_config):
     }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def browser_page(test_config, context):
     """Create a new browser page for each test."""
     page = await context.new_page()

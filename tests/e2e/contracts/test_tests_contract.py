@@ -16,6 +16,7 @@ from fixtures.mcp_client import XrayMCPClient, MCPResponse, XrayTestType
 class TestTestsContract:
     """Contract tests for test management MCP tools."""
     
+    @pytest.mark.asyncio
     async def test_validate_connection_contract(self, mcp_client: XrayMCPClient):
         """Test validate_connection tool contract."""
         response = await mcp_client.validate_connection()
@@ -27,6 +28,7 @@ class TestTestsContract:
         assert "status" in response.data or "accountId" in response.data, \
             "Response should contain status or account information"
     
+    @pytest.mark.asyncio
     async def test_create_test_generic_contract(
         self, 
         mcp_client: XrayMCPClient, 
@@ -63,6 +65,7 @@ class TestTestsContract:
         assert response.data.get("test_type") in ["Generic", None], \
             "Test type should be Generic or None"
     
+    @pytest.mark.asyncio
     async def test_create_test_manual_contract(
         self, 
         mcp_client: XrayMCPClient, 
@@ -100,6 +103,7 @@ class TestTestsContract:
         assert response.data.get("test_type") in ["Manual", None], \
             "Test type should be Manual or None"
     
+    @pytest.mark.asyncio
     async def test_create_test_cucumber_contract(
         self, 
         mcp_client: XrayMCPClient, 
@@ -136,6 +140,7 @@ class TestTestsContract:
         assert response.data.get("test_type") in ["Cucumber", None], \
             "Test type should be Cucumber or None"
     
+    @pytest.mark.asyncio
     async def test_get_test_contract(self, mcp_client: XrayMCPClient, test_data_manager):
         """Test get_test tool contract."""
         # First create a test to retrieve
@@ -175,6 +180,7 @@ class TestTestsContract:
         assert str(retrieved_id) == str(issue_id), \
             f"Retrieved issue ID {retrieved_id} should match created ID {issue_id}"
     
+    @pytest.mark.asyncio
     async def test_update_test_contract(self, mcp_client: XrayMCPClient, test_data_manager):
         """Test update_test tool contract."""
         # Create a test to update
@@ -217,6 +223,7 @@ class TestTestsContract:
         get_response = await mcp_client.get_test(issue_id)
         mcp_client.assert_success(get_response, "Test retrieval after update should succeed")
     
+    @pytest.mark.asyncio
     async def test_update_test_type_contract(self, mcp_client: XrayMCPClient, test_data_manager):
         """Test test type update contract."""
         # Create a Generic test
@@ -249,6 +256,7 @@ class TestTestsContract:
         # Assert successful type change
         mcp_client.assert_success(update_response, "Test type update should succeed")
     
+    @pytest.mark.asyncio
     async def test_update_gherkin_definition_contract(
         self, 
         mcp_client: XrayMCPClient, 
@@ -288,6 +296,7 @@ class TestTestsContract:
         assert isinstance(gherkin_response.data, dict), \
             "Gherkin update response should be a dictionary"
     
+    @pytest.mark.asyncio
     async def test_delete_test_contract(self, mcp_client: XrayMCPClient, test_data_manager):
         """Test delete_test tool contract."""
         # Create a test to delete
@@ -323,6 +332,7 @@ class TestTestsContract:
         assert not get_response.success or not get_response.data, \
             "Deleted test should not be retrievable or should return empty data"
     
+    @pytest.mark.asyncio
     async def test_execute_jql_query_contract(self, mcp_client: XrayMCPClient, test_data_manager):
         """Test execute_jql_query tool contract."""
         # Test basic JQL query contract
@@ -347,6 +357,7 @@ class TestTestsContract:
             f"JQL response should contain results/issues/tests/data field, got: {list(query_response.data.keys())}"
     
     @pytest.mark.parametrize("invalid_project", ["NONEXISTENT", "INVALID-123", ""])
+    @pytest.mark.asyncio
     async def test_create_test_invalid_project_contract(
         self, 
         mcp_client: XrayMCPClient, 
@@ -370,6 +381,7 @@ class TestTestsContract:
         assert response.error is not None, \
             "Failed response should contain error message"
     
+    @pytest.mark.asyncio
     async def test_get_test_invalid_id_contract(self, mcp_client: XrayMCPClient):
         """Test get_test contract with invalid test ID."""
         invalid_id = "999999999"
@@ -384,6 +396,7 @@ class TestTestsContract:
             assert response.error is not None, \
                 "Failed response should contain error message"
     
+    @pytest.mark.asyncio
     async def test_mcp_tool_error_handling_contract(self, mcp_client: XrayMCPClient):
         """Test MCP tool error handling contracts."""
         # Test with completely malformed parameters
