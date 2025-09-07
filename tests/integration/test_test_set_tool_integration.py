@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import os
 import uuid
 from dotenv import load_dotenv
@@ -12,7 +13,7 @@ load_dotenv()
 class TestTestSetToolIntegration:
     """Integration tests for Test Set tool against live API."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def tool(self):
         """Create Test Set tool with authenticated client."""
         auth = XrayAuth(
@@ -23,7 +24,7 @@ class TestTestSetToolIntegration:
         client = XrayGraphQLClient(auth)
         return TestSetTool(client)
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def test_tool(self):
         """Create Test tool for creating test issues."""
         auth = XrayAuth(
@@ -34,7 +35,7 @@ class TestTestSetToolIntegration:
         client = XrayGraphQLClient(auth)
         return TestTool(client)
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def test_issues(self, test_tool):
         """Create test issues to use in test sets."""
         tests = []
