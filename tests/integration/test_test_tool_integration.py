@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import os
 import uuid
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ load_dotenv()
 class TestTestToolIntegration:
     """Integration tests for Test tool against live API."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def tool(self):
         """Create Test tool with authenticated client."""
         auth = XrayAuth(
