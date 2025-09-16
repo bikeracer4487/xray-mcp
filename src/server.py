@@ -1,84 +1,23 @@
-"""
-Xray MCP Server implementation using FastMCP.
-
-Provides MCP tools for interacting with Xray Cloud test management system.
-"""
+"""Simplified Xray MCP Server following FastMCP best practices."""
 
 import os
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, List, Optional
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from .auth import XrayAuth  
+from .auth import XrayAuth
 from .graphql_client import XrayGraphQLClient
-from .tools.test_tool import TestTool
-import asyncio
+from .tools.xray_tool import XrayTool
 
 # Load environment variables
 load_dotenv()
 
 
-class ToolWrapper:
-    """Wrapper for FastMCP Tool to provide inputSchema interface for tests."""
-    
-    def __init__(self, tool):
-        self._tool = tool
-    
-    @property
-    def name(self):
-        return self._tool.name
-    
-    @property
-    def description(self):
-        return self._tool.description
-    
-    @property
-    def inputSchema(self):
-        return self._tool.parameters
-    
-    def __getattr__(self, name):
-        return getattr(self._tool, name)
+def create_server() -> FastMCP:
+    """Create simplified FastMCP server with single tool registration.
 
-
-class XrayMCPServer(FastMCP):
-    """Extended FastMCP server with synchronous tool listing for testing."""
-    
-    def list_tools(self):
-        """Synchronous wrapper for get_tools() method for test compatibility."""
-        # Try to access internal tool manager directly to avoid async issues
-        if hasattr(self, '_tool_manager') and self._tool_manager:
-            tools = self._tool_manager._tools
-            wrapped_tools = [ToolWrapper(tool) for tool in tools.values()] if tools else []
-            return wrapped_tools
-        
-        # Fallback: try async method
-        loop = None
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're in an async context, we can't run async code synchronously
-                # This is a limitation, but for tests we can work around it
-                return []
-        except RuntimeError:
-            # No event loop running, we can create one
-            pass
-        
-        # Create new event loop if none exists or if the current one isn't running
-        try:
-            if loop is None or not loop.is_running():
-                tools_dict = asyncio.run(self.get_tools())
-                wrapped_tools = [ToolWrapper(tool) for tool in tools_dict.values()] if tools_dict else []
-                return wrapped_tools
-        except RuntimeError:
-            # Fallback: return empty list if we can't get tools synchronously
-            return []
-
-
-def create_server() -> XrayMCPServer:
-    """Create and configure FastMCP server with Xray tools.
-    
     Returns:
-        FastMCP: Configured server instance with registered tools
-        
+        FastMCP: Configured server instance following FastMCP best practices
+
     Raises:
         ValueError: If required environment variables are missing
         Exception: If authentication fails
@@ -87,125 +26,119 @@ def create_server() -> XrayMCPServer:
     client_id = os.getenv('XRAY_CLIENT_ID')
     client_secret = os.getenv('XRAY_CLIENT_SECRET')
     base_url = os.getenv('XRAY_BASE_URL', 'https://xray.cloud.getxray.app')
-    
+
     if not client_id:
         raise ValueError("XRAY_CLIENT_ID environment variable is required")
     if not client_secret:
         raise ValueError("XRAY_CLIENT_SECRET environment variable is required")
-    
+
     # Create FastMCP server instance
-    mcp = XrayMCPServer("Xray Test Management")
-    
+    mcp = FastMCP("Xray Test Management")
+
     # Initialize authentication and GraphQL client
     auth = XrayAuth(client_id, client_secret, base_url)
     client = XrayGraphQLClient(auth)
-    
-    # Initialize tools
-    test_tool = TestTool(client)
-    
-    # Register xray_test tool with comprehensive schema
-    @mcp.tool(description="Manage Xray tests - create, get, update, list, and delete test cases")
+    xray_tool = XrayTool(client)
+
+    # Single tool registration following FastMCP patterns
+    @mcp.tool(description="Manage Xray tests, executions, plans, and runs with unified interface")
     async def xray_test(
-        action: Literal["create", "get", "update", "list", "delete"],
-        test_type: str = None,
-        project_key: str = None,
-        summary: str = None,
-        description: str = None,
-        steps: list = None,
-        gherkin: str = None,
-        issue_id: str = None,
+        entity: Literal["test", "test_execution", "test_plan", "test_run"],
+        action: str,
+        issue_id: Optional[str] = None,
+        project_key: Optional[str] = None,
+        summary: Optional[str] = None,
+        test_type: Optional[Literal["Manual", "Generic", "Cucumber"]] = None,
+        test_issue_ids: Optional[List[str]] = None,
+        test_issue_id: Optional[str] = None,  # For test run operations (singular)
+        test_exec_issue_ids: Optional[List[str]] = None,  # For plan execution associations
         limit: int = 50,
         start: int = 0,
-        jql: str = None
+        jql: Optional[str] = None,
+        description: Optional[str] = None,
+        steps: Optional[List[Dict[str, str]]] = None,
+        gherkin: Optional[str] = None,
+        status: Optional[str] = None,
+        comment: Optional[str] = None,
+        test_environments: Optional[List[str]] = None,
+        test_execution_id: Optional[str] = None,
+        defects: Optional[List[str]] = None,
+        environments: Optional[List[str]] = None,
+        id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Manage Xray test cases with various operations.
-        
+        Unified Xray tool for managing all entities with FastMCP simplicity.
+
         Args:
-            action: Action to perform (create, get, update, list, delete)
-            test_type: Type of test (Manual, Generic, Cucumber) - required for create
-            project_key: Jira project key - required for create and list
-            summary: Test case summary - required for create
-            description: Test case description
-            steps: List of test steps for Manual tests
+            entity: Entity type (test, test_execution, test_plan, test_run)
+            action: Action to perform (create, get, update_status, list, delete, etc.)
+            issue_id: Issue ID for specific operations
+            project_key: Jira project key for create/list operations
+            summary: Summary/title for create operations
+            test_type: Test type for test creation (Manual, Generic, Cucumber)
+            test_issue_ids: List of test issue IDs for associations
+            test_issue_id: Single test issue ID for test run operations
+            test_exec_issue_ids: List of test execution IDs for plan associations
+            limit: Maximum results for list operations (max 100)
+            start: Starting index for pagination
+            jql: Custom JQL query for filtering
+            description: Additional description for entities
+            steps: Test steps for Manual tests
             gherkin: Gherkin script for Cucumber tests
-            issue_id: Issue ID for get, update, delete operations
-            limit: Maximum results to return for list (max 100)
-            start: Starting index for list pagination
-            jql: Custom JQL query for list operation
-            
+            status: Status for test run updates
+            comment: Comment for test run updates
+            test_environments: Test environments for executions
+            test_execution_id: Test execution ID for test run operations
+            defects: Defect list for test run operations
+
         Returns:
-            Dict containing operation results
+            Operation result with success status, data, warnings, and errors
         """
-        # Ensure authentication before executing tool
+        # Ensure authentication before executing
         await auth.authenticate()
-        
+
+        # Build parameters dictionary - let managers handle validation
         params = {
+            'entity': entity,
             'action': action,
-            'test_type': test_type,
+            'issue_id': issue_id,
             'project_key': project_key,
             'summary': summary,
+            'test_type': test_type,
+            'test_issue_ids': test_issue_ids or [],
+            'test_issue_id': test_issue_id,  # For test run operations (singular)
+            'test_exec_issue_ids': test_exec_issue_ids or [],  # For plan execution associations
+            'limit': min(limit, 100),
+            'start': start,
+            'jql': jql,
             'description': description,
             'steps': steps or [],
             'gherkin': gherkin,
-            'issue_id': issue_id,
-            'limit': limit,
-            'start': start,
-            'jql': jql
+            'status': status,
+            'comment': comment,
+            'test_environments': test_environments or [],
+            'test_execution_id': test_execution_id,
+            'defects': defects or [],
+            'environments': environments or [],
+            'id': id
         }
-        
-        return await test_tool.execute(params)
-    
-    # Register placeholder tools for test sets, test runs, and test executions
-    @mcp.tool(description="Manage Xray test sets - create and manage collections of tests")
-    async def xray_test_set(action: str = "list") -> Dict[str, Any]:
-        """
-        Manage Xray test sets.
-        
-        Args:
-            action: Action to perform (currently placeholder)
-            
-        Returns:
-            Dict containing placeholder response
-        """
-        return {"message": "Test set management not yet implemented", "action": action}
-    
-    @mcp.tool(description="Manage Xray test runs - execute tests and track results")
-    async def xray_test_run(action: str = "list") -> Dict[str, Any]:
-        """
-        Manage Xray test runs.
-        
-        Args:
-            action: Action to perform (currently placeholder)
-            
-        Returns:
-            Dict containing placeholder response
-        """
-        return {"message": "Test run management not yet implemented", "action": action}
-    
-    @mcp.tool(description="Manage Xray test executions - track individual test execution results")
-    async def xray_test_execution(action: str = "list") -> Dict[str, Any]:
-        """
-        Manage Xray test executions.
-        
-        Args:
-            action: Action to perform (currently placeholder)
-            
-        Returns:
-            Dict containing placeholder response
-        """
-        return {"message": "Test execution management not yet implemented", "action": action}
-    
+
+        # Remove None values to reduce payload
+        params = {k: v for k, v in params.items() if v is not None}
+
+        # Execute using xray tool
+        return await xray_tool.execute(params)
+
     return mcp
 
 
+# Alias for any existing references
+create_simplified_server = create_server
+
+
 if __name__ == "__main__":
-    # For running the server directly
-    import asyncio
-    
-    async def main():
-        server = create_server()
-        # Server would be started here in a real deployment
-        print("Xray MCP Server created successfully")
-        
-    asyncio.run(main())
+    # Run the server
+    server = create_server()
+    # In production, you'd use uvicorn or similar to run this
+    print("Simplified Xray MCP Server created successfully!")
+    print("Available tools:", [tool.name for tool in server._tool_manager._tools.values()])
