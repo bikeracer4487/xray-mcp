@@ -6,6 +6,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 load_dotenv()
 
@@ -45,17 +46,13 @@ class TestEndToEndCRUD:
             'summary': f'{unique_prefix} Test CRUD Operation',
             'test_type': 'Manual',
             'description': 'End-to-end CRUD test',
-            'steps': [
-                {'action': 'Click login', 'data': 'username field', 'result': 'Field selected'},
-                {'action': 'Enter credentials', 'data': 'valid username', 'result': 'Username entered'}
-            ]
+            'steps': '[{"action": "Click login", "data": "username field", "result": "Field selected"}, {"action": "Enter credentials", "data": "valid username", "result": "Username entered"}]'
         }
 
         create_result = await tool.run(create_params)
         assert isinstance(create_result, list), "Create should return list"
 
-        import json
-        create_data = json.loads(create_result[0].text)
+        create_data = parse_mcp_response(create_result)
         assert create_data['success'], f"Create failed: {create_data.get('errors')}"
 
         test_id = create_data['data']['issueId']
@@ -70,7 +67,7 @@ class TestEndToEndCRUD:
         }
 
         get_result = await tool.run(get_params)
-        get_data = json.loads(get_result[0].text)
+        get_data = parse_mcp_response(get_result)
         assert get_data['success'], f"Get failed: {get_data.get('errors')}"
         assert get_data['data']['issueId'] == test_id
         assert unique_prefix in get_data['data']['summary']
@@ -85,7 +82,7 @@ class TestEndToEndCRUD:
         }
 
         list_result = await tool.run(list_params)
-        list_data = json.loads(list_result[0].text)
+        list_data = parse_mcp_response(list_result)
         assert list_data['success'], f"List failed: {list_data.get('errors')}"
 
         # Find our test in the list
@@ -107,7 +104,7 @@ class TestEndToEndCRUD:
         }
 
         update_result = await tool.run(update_params)
-        update_data = json.loads(update_result[0].text)
+        update_data = parse_mcp_response(update_result)
         assert update_data['success'], f"Update failed: {update_data.get('errors')}"
         print(f"✅ Updated test type: {test_key}")
 
@@ -119,13 +116,13 @@ class TestEndToEndCRUD:
         }
 
         delete_result = await tool.run(delete_params)
-        delete_data = json.loads(delete_result[0].text)
+        delete_data = parse_mcp_response(delete_result)
         assert delete_data['success'], f"Delete failed: {delete_data.get('errors')}"
         print(f"✅ Deleted test: {test_key}")
 
         # 6. VERIFY DELETION
         get_deleted_result = await tool.run(get_params)
-        get_deleted_data = json.loads(get_deleted_result[0].text)
+        get_deleted_data = parse_mcp_response(get_deleted_result)
         assert not get_deleted_data['success'], "Get should fail for deleted test"
         print(f"✅ Confirmed test deletion: {test_key}")
 
@@ -144,7 +141,7 @@ class TestEndToEndCRUD:
         }
 
         test_result = await tool.run(test_create_params)
-        test_data = json.loads(test_result[0].text)
+        test_data = parse_mcp_response(test_result)
         assert test_data['success'], "Test creation failed"
         test_id = test_data['data']['issueId']
 
@@ -160,7 +157,7 @@ class TestEndToEndCRUD:
             }
 
             exec_result = await tool.run(execution_params)
-            exec_data = json.loads(exec_result[0].text)
+            exec_data = parse_mcp_response(exec_result)
             assert exec_data['success'], f"Execution create failed: {exec_data.get('errors')}"
 
             execution_id = exec_data['data']['issueId']
@@ -175,7 +172,7 @@ class TestEndToEndCRUD:
             }
 
             get_exec_result = await tool.run(get_exec_params)
-            get_exec_data = json.loads(get_exec_result[0].text)
+            get_exec_data = parse_mcp_response(get_exec_result)
             assert get_exec_data['success'], "Execution get failed"
             print(f"✅ Retrieved test execution: {execution_key}")
 
@@ -187,7 +184,7 @@ class TestEndToEndCRUD:
             }
 
             delete_exec_result = await tool.run(delete_exec_params)
-            delete_exec_data = json.loads(delete_exec_result[0].text)
+            delete_exec_data = parse_mcp_response(delete_exec_result)
             assert delete_exec_data['success'], "Execution delete failed"
             print(f"✅ Deleted test execution: {execution_key}")
 
@@ -211,7 +208,7 @@ class TestEndToEndCRUD:
         }
 
         result = await tool.run(invalid_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         assert not data['success'], "Should fail with invalid issue ID"
         assert len(data['errors']) > 0, "Should have error messages"
         print(f"✅ Error handling works: {data['errors'][0]}")
@@ -244,7 +241,7 @@ class TestEndToEndCRUD:
             }
 
             result = await tool.run(params)
-            data = json.loads(result[0].text)
+            data = parse_mcp_response(result)
 
             # Should either succeed or fail gracefully (not crash on entity)
             if not data['success']:

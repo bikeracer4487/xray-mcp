@@ -47,18 +47,7 @@ class TestGraphQLTemplateValidation:
             'summary': f'{unique_prefix} Manual Test with Steps',
             'test_type': 'Manual',
             'description': 'Testing fixed GraphQL template for manual test creation',
-            'steps': [
-                {
-                    'action': 'Open application',
-                    'data': 'Launch browser and navigate to URL',
-                    'result': 'Application loads successfully'
-                },
-                {
-                    'action': 'Verify login form',
-                    'data': 'Check username and password fields',
-                    'result': 'Login form is displayed correctly'
-                }
-            ]
+            'steps': '[{"action": "Open application", "data": "Launch browser and navigate to URL", "result": "Application loads successfully"}, {"action": "Verify login form", "data": "Check username and password fields", "result": "Login form is displayed correctly"}]'
         }
 
         result = await tool.run(create_params)

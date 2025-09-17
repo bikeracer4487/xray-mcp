@@ -50,10 +50,7 @@ class TestComprehensiveValidation:
             'summary': f'{unique_prefix} Manual Test',
             'test_type': 'Manual',
             'description': 'Validation test manual test',
-            'steps': [
-                {'action': 'Step 1', 'data': 'Test data', 'result': 'Expected result'},
-                {'action': 'Step 2', 'data': 'More data', 'result': 'Another result'}
-            ]
+            'steps': '[{"action": "Step 1", "data": "Test data", "result": "Expected result"}, {"action": "Step 2", "data": "More data", "result": "Another result"}]'
         }
 
         manual_result = await tool.run(manual_test_params)

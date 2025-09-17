@@ -26,6 +26,25 @@ class TestManager(XrayEntityManager):
         if not summary:
             return self.create_error_result("Missing required parameter: summary")
 
+        # Parse steps parameter if it's a JSON string
+        if isinstance(steps, str):
+            try:
+                import json
+                steps = json.loads(steps)
+            except json.JSONDecodeError as e:
+                return self.create_error_result(f"Invalid JSON format for steps parameter: {str(e)}")
+        
+        # Validate steps format if provided
+        if steps and not isinstance(steps, list):
+            return self.create_error_result("Steps parameter must be a list of step objects or a JSON string")
+        
+        # Validate each step has required structure for CreateStepInput
+        if steps:
+            for i, step in enumerate(steps):
+                if not isinstance(step, dict):
+                    return self.create_error_result(f"Step {i+1} must be an object with 'action', 'data', and 'result' fields")
+                # Note: action, data, result are optional in CreateStepInput but commonly used
+
         try:
             # Choose template based on test type
             if test_type == 'Manual':

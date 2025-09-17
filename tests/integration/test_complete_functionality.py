@@ -50,10 +50,7 @@ class TestCompleteFunctionality:
             'summary': f'{unique_prefix} Complete Workflow Test',
             'test_type': 'Manual',
             'description': 'Complete workflow validation test',
-            'steps': [
-                {'action': 'Step 1', 'data': 'Test data', 'result': 'Expected result'},
-                {'action': 'Step 2', 'data': 'More data', 'result': 'Another result'}
-            ]
+            'steps': '[{"action": "Step 1", "data": "Test data", "result": "Expected result"}, {"action": "Step 2", "data": "More data", "result": "Another result"}]'
         }
 
         create_result = await tool.run(create_params)

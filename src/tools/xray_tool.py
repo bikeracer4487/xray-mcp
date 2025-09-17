@@ -1,6 +1,6 @@
 """Simplified Xray tool using manager pattern."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Union, List
 from ..graphql_client import XrayGraphQLClient
 from ..managers import TestManager, ExecutionManager, PlanManager, RunManager
 
@@ -45,7 +45,12 @@ class XrayTool:
             return self._create_error_result("Missing required parameter: action")
 
         if entity not in self.managers:
-            return self._create_error_result(f"Invalid entity: {entity}")
+            valid_entities = list(self.managers.keys())
+            return self._create_error_result([
+                f"Invalid entity: '{entity}'",
+                f"Valid entities are: {', '.join(valid_entities)}",
+                f"Example: entity='test' for test operations"
+            ])
 
         manager = self.managers[entity]
 
@@ -56,13 +61,25 @@ class XrayTool:
             except Exception as e:
                 return self._create_error_result(f"Failed to execute {action} on {entity}: {str(e)}")
         else:
-            return self._create_error_result(f"Invalid action '{action}' for entity '{entity}'")
+            available_actions = [method for method in dir(manager) if not method.startswith('_') and callable(getattr(manager, method))]
+            # Filter out inherited methods
+            available_actions = [a for a in available_actions if a in ['create', 'get', 'update', 'delete', 'list', 'update_status', 'update_type', 'update_content', 'add_tests', 'remove_tests', 'add_environments', 'remove_environments']]
+            return self._create_error_result([
+                f"Invalid action '{action}' for entity '{entity}'",
+                f"Available actions for {entity}: {', '.join(available_actions) if available_actions else 'none implemented'}",
+                f"Example: action='create' to create a new {entity}"
+            ])
 
-    def _create_error_result(self, error_message: str) -> Dict[str, Any]:
+    def _create_error_result(self, error_message: Union[str, List[str]]) -> Dict[str, Any]:
         """Create standardized error response."""
+        if isinstance(error_message, str):
+            errors = [error_message]
+        else:
+            errors = error_message
+
         return {
             'success': False,
             'data': None,
             'warnings': [],
-            'errors': [error_message]
+            'errors': errors
         }
