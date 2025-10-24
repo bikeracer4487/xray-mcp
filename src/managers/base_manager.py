@@ -32,7 +32,17 @@ class XrayEntityManager(ABC):
         try:
             return await self.client.execute(query, variables)
         except Exception as e:
-            raise Exception(f"GraphQL query failed: {str(e)}")
+            error_msg = str(e)
+
+            # Handle specific Xray indexing issues
+            if "project may need to be re-indexed" in error_msg.lower():
+                raise Exception(
+                    f"Xray indexing issue: {error_msg}. "
+                    "This is a temporary Xray Cloud service issue. "
+                    "Please try again in a few moments or contact Xray support if this persists."
+                )
+
+            raise Exception(f"GraphQL query failed: {error_msg}")
 
     def build_jql(self, project_key: Optional[str] = None, custom_jql: Optional[str] = None,
                   entity_type: Optional[str] = None) -> str:
@@ -51,7 +61,7 @@ class XrayEntityManager(ABC):
 
         parts = []
         if project_key:
-            parts.append(f"project = {project_key}")
+            parts.append(f"project = \"{project_key}\"")
         if entity_type:
             parts.append(f"issuetype = '{entity_type}'")
 

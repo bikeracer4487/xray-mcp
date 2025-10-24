@@ -32,6 +32,19 @@ class RetryConfig:
     max_delay: float = 60.0
     backoff_multiplier: float = 2.0
 
+    # Indexing delay specific configuration
+    indexing_max_retries: int = 6  # More retries for indexing delays
+    indexing_base_delay: float = 2.0  # Longer initial delay for indexing
+    indexing_max_delay: float = 300.0  # Up to 5 minutes for indexing delays
+
+    # Jitter configuration to prevent thundering herd
+    enable_jitter: bool = True
+    jitter_max_percent: float = 0.1  # ±10% jitter
+
+    # Different strategies for different operation types
+    create_then_read_delay: float = 5.0  # Wait 5s after create before read
+    bulk_operation_delay: float = 3.0   # Additional delay for bulk operations
+
 
 @dataclass
 class CircuitBreakerConfig:

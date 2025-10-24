@@ -6,6 +6,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 load_dotenv()
 
@@ -54,7 +55,7 @@ class TestComprehensiveValidation:
         }
 
         manual_result = await tool.run(manual_test_params)
-        manual_data = json.loads(manual_result[0].text)
+        manual_data = parse_mcp_response(manual_result)
         assert manual_data['success'], f"Manual test creation failed: {manual_data.get('errors')}"
         manual_test_id = manual_data['data']['issueId']
         print(f"✅ Manual test created: {manual_test_id}")
@@ -70,7 +71,7 @@ class TestComprehensiveValidation:
         }
 
         generic_result = await tool.run(generic_test_params)
-        generic_data = json.loads(generic_result[0].text)
+        generic_data = parse_mcp_response(generic_result)
         assert generic_data['success'], f"Generic test creation failed: {generic_data.get('errors')}"
         generic_test_id = generic_data['data']['issueId']
         print(f"✅ Generic test created: {generic_test_id}")
@@ -99,7 +100,7 @@ Scenario: Everything works
         }
 
         cucumber_result = await tool.run(cucumber_test_params)
-        cucumber_data = json.loads(cucumber_result[0].text)
+        cucumber_data = parse_mcp_response(cucumber_result)
         assert cucumber_data['success'], f"Cucumber test creation failed: {cucumber_data.get('errors')}"
         cucumber_test_id = cucumber_data['data']['issueId']
         print(f"✅ Cucumber test created: {cucumber_test_id}")
@@ -114,7 +115,7 @@ Scenario: Everything works
                 }
 
                 get_result = await tool.run(get_params)
-                get_data = json.loads(get_result[0].text)
+                get_data = parse_mcp_response(get_result)
                 assert get_data['success'], f"Get {test_type} test failed: {get_data.get('errors')}"
                 assert unique_prefix in get_data['data']['summary']
                 print(f"✅ {test_type} test retrieved: {test_id}")
@@ -128,7 +129,7 @@ Scenario: Everything works
             }
 
             list_result = await tool.run(list_params)
-            list_data = json.loads(list_result[0].text)
+            list_data = parse_mcp_response(list_result)
             assert list_data['success'], f"List tests failed: {list_data.get('errors')}"
             assert list_data['data']['total'] > 0, "Should find some tests"
             print(f"✅ Listed tests: found {list_data['data']['total']} tests")
@@ -142,7 +143,7 @@ Scenario: Everything works
             }
 
             update_result = await tool.run(update_type_params)
-            update_data = json.loads(update_result[0].text)
+            update_data = parse_mcp_response(update_result)
             assert update_data['success'], f"Update test type failed: {update_data.get('errors')}"
             print(f"✅ Test type updated: {manual_test_id}")
 
@@ -167,7 +168,7 @@ Scenario: Updates work
             }
 
             update_content_result = await tool.run(update_content_params)
-            update_content_data = json.loads(update_content_result[0].text)
+            update_content_data = parse_mcp_response(update_content_result)
             assert update_content_data['success'], f"Update gherkin failed: {update_content_data.get('errors')}"
             print(f"✅ Gherkin content updated: {cucumber_test_id}")
 
@@ -197,7 +198,7 @@ Scenario: Updates work
         }
 
         test_result = await tool.run(test_params)
-        test_data = json.loads(test_result[0].text)
+        test_data = parse_mcp_response(test_result)
         assert test_data['success'], "Test creation failed"
         test_id = test_data['data']['issueId']
 
@@ -213,7 +214,7 @@ Scenario: Updates work
             }
 
             exec_result = await tool.run(create_exec_params)
-            exec_data = json.loads(exec_result[0].text)
+            exec_data = parse_mcp_response(exec_result)
             assert exec_data['success'], f"Execution creation failed: {exec_data.get('errors')}"
             execution_id = exec_data['data']['issueId']
             print(f"✅ Test execution created: {execution_id}")
@@ -227,7 +228,7 @@ Scenario: Updates work
                 }
 
                 get_exec_result = await tool.run(get_exec_params)
-                get_exec_data = json.loads(get_exec_result[0].text)
+                get_exec_data = parse_mcp_response(get_exec_result)
                 assert get_exec_data['success'], f"Get execution failed: {get_exec_data.get('errors')}"
                 print(f"✅ Test execution retrieved: {execution_id}")
 
@@ -240,7 +241,7 @@ Scenario: Updates work
                 }
 
                 list_exec_result = await tool.run(list_exec_params)
-                list_exec_data = json.loads(list_exec_result[0].text)
+                list_exec_data = parse_mcp_response(list_exec_result)
                 assert list_exec_data['success'], f"List executions failed: {list_exec_data.get('errors')}"
                 print(f"✅ Executions listed: found {list_exec_data['data']['total']} executions")
 
@@ -253,7 +254,7 @@ Scenario: Updates work
                 }
 
                 add_env_result = await tool.run(add_env_params)
-                add_env_data = json.loads(add_env_result[0].text)
+                add_env_data = parse_mcp_response(add_env_result)
                 assert add_env_data['success'], f"Add environment failed: {add_env_data.get('errors')}"
                 print(f"✅ Test environment added: {execution_id}")
 
@@ -266,7 +267,7 @@ Scenario: Updates work
                 }
 
                 remove_env_result = await tool.run(remove_env_params)
-                remove_env_data = json.loads(remove_env_result[0].text)
+                remove_env_data = parse_mcp_response(remove_env_result)
                 assert remove_env_data['success'], f"Remove environment failed: {remove_env_data.get('errors')}"
                 print(f"✅ Test environment removed: {execution_id}")
 
@@ -305,7 +306,7 @@ Scenario: Updates work
         }
 
         test_result = await tool.run(test_params)
-        test_data = json.loads(test_result[0].text)
+        test_data = parse_mcp_response(test_result)
         test_id = test_data['data']['issueId']
 
         exec_params = {
@@ -318,7 +319,7 @@ Scenario: Updates work
         }
 
         exec_result = await tool.run(exec_params)
-        exec_data = json.loads(exec_result[0].text)
+        exec_data = parse_mcp_response(exec_result)
         execution_id = exec_data['data']['issueId']
 
         try:
@@ -332,7 +333,7 @@ Scenario: Updates work
             }
 
             plan_result = await tool.run(create_plan_params)
-            plan_data = json.loads(plan_result[0].text)
+            plan_data = parse_mcp_response(plan_result)
             assert plan_data['success'], f"Plan creation failed: {plan_data.get('errors')}"
             plan_id = plan_data['data']['issueId']
             print(f"✅ Test plan created: {plan_id}")
@@ -346,7 +347,7 @@ Scenario: Updates work
                 }
 
                 get_plan_result = await tool.run(get_plan_params)
-                get_plan_data = json.loads(get_plan_result[0].text)
+                get_plan_data = parse_mcp_response(get_plan_result)
 
                 if get_plan_data['success']:
                     print(f"✅ Test plan retrieved: {plan_id}")
@@ -366,7 +367,7 @@ Scenario: Updates work
                 }
 
                 list_plan_result = await tool.run(list_plan_params)
-                list_plan_data = json.loads(list_plan_result[0].text)
+                list_plan_data = parse_mcp_response(list_plan_result)
                 assert list_plan_data['success'], f"List plans failed: {list_plan_data.get('errors')}"
                 print(f"✅ Plans listed: found {list_plan_data['data']['total']} plans")
 
@@ -379,7 +380,7 @@ Scenario: Updates work
                 }
 
                 add_tests_result = await tool.run(add_tests_params)
-                add_tests_data = json.loads(add_tests_result[0].text)
+                add_tests_data = parse_mcp_response(add_tests_result)
                 assert add_tests_data['success'], f"Add tests to plan failed: {add_tests_data.get('errors')}"
                 print(f"✅ Tests added to plan: {plan_id}")
 
@@ -392,7 +393,7 @@ Scenario: Updates work
                 }
 
                 add_exec_result = await tool.run(add_exec_params)
-                add_exec_data = json.loads(add_exec_result[0].text)
+                add_exec_data = parse_mcp_response(add_exec_result)
                 assert add_exec_data['success'], f"Add executions to plan failed: {add_exec_data.get('errors')}"
                 print(f"✅ Executions added to plan: {plan_id}")
 
@@ -405,7 +406,7 @@ Scenario: Updates work
                 }
 
                 remove_tests_result = await tool.run(remove_tests_params)
-                remove_tests_data = json.loads(remove_tests_result[0].text)
+                remove_tests_data = parse_mcp_response(remove_tests_result)
                 assert remove_tests_data['success'], f"Remove tests from plan failed: {remove_tests_data.get('errors')}"
                 print(f"✅ Tests removed from plan: {plan_id}")
 
@@ -440,7 +441,7 @@ Scenario: Updates work
         }
 
         test_result = await tool.run(test_params)
-        test_data = json.loads(test_result[0].text)
+        test_data = parse_mcp_response(test_result)
         test_id = test_data['data']['issueId']
 
         exec_params = {
@@ -453,7 +454,7 @@ Scenario: Updates work
         }
 
         exec_result = await tool.run(exec_params)
-        exec_data = json.loads(exec_result[0].text)
+        exec_data = parse_mcp_response(exec_result)
         execution_id = exec_data['data']['issueId']
 
         try:
@@ -466,7 +467,7 @@ Scenario: Updates work
             }
 
             get_run_result = await tool.run(get_run_params)
-            get_run_data = json.loads(get_run_result[0].text)
+            get_run_data = parse_mcp_response(get_run_result)
 
             if get_run_data['success']:
                 run_id = get_run_data['data']['id']
@@ -482,7 +483,7 @@ Scenario: Updates work
                 }
 
                 update_result = await tool.run(update_status_params)
-                update_data = json.loads(update_result[0].text)
+                update_data = parse_mcp_response(update_result)
                 assert update_data['success'], f"Update status failed: {update_data.get('errors')}"
                 print(f"✅ Test run status updated: {run_id}")
 
@@ -495,7 +496,7 @@ Scenario: Updates work
                 }
 
                 comment_result = await tool.run(comment_params)
-                comment_data = json.loads(comment_result[0].text)
+                comment_data = parse_mcp_response(comment_result)
                 assert comment_data['success'], f"Update comment failed: {comment_data.get('errors')}"
                 print(f"✅ Test run comment updated: {run_id}")
 
@@ -508,7 +509,7 @@ Scenario: Updates work
                 }
 
                 defects_result = await tool.run(defects_params)
-                defects_data = json.loads(defects_result[0].text)
+                defects_data = parse_mcp_response(defects_result)
                 # Note: This might fail if KAREN-123 doesn't exist, but that's expected
                 if defects_data['success']:
                     print(f"✅ Defects added to test run: {run_id}")
@@ -524,7 +525,7 @@ Scenario: Updates work
                 }
 
                 list_result = await tool.run(list_run_params)
-                list_data = json.loads(list_result[0].text)
+                list_data = parse_mcp_response(list_result)
                 assert list_data['success'], f"List runs failed: {list_data.get('errors')}"
                 print(f"✅ Test runs listed: found {list_data['data']['total']} runs")
 
@@ -536,7 +537,7 @@ Scenario: Updates work
                 }
 
                 evidence_result = await tool.run(evidence_params)
-                evidence_data = json.loads(evidence_result[0].text)
+                evidence_data = parse_mcp_response(evidence_result)
                 assert not evidence_data['success'], "Evidence upload should fail with documented limitation"
                 assert 'file handling' in str(evidence_data['errors']).lower(), "Should mention file handling limitation"
                 print(f"✅ Evidence upload correctly shows limitation: {evidence_data['errors'][0]}")
@@ -586,7 +587,7 @@ Scenario: Updates work
         }
 
         result = await tool.run(test_params_plural)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         # Should not crash on parameter interface
         print("✅ Plural parameters (test_issue_ids) accepted")
 
@@ -599,7 +600,7 @@ Scenario: Updates work
         }
 
         result = await tool.run(test_params_singular)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         # Should not crash on parameter interface
         print("✅ Singular parameters (test_issue_id) accepted")
 
@@ -612,7 +613,7 @@ Scenario: Updates work
         }
 
         result = await tool.run(test_params_exec_ids)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         # Should not crash on parameter interface
         print("✅ New parameters (test_exec_issue_ids) accepted")
 

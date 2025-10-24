@@ -4,7 +4,8 @@ import pytest
 import os
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from src.server import create_server as create_simplified_server
+from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response as create_simplified_server
 
 load_dotenv()
 

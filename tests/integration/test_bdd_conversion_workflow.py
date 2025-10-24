@@ -774,7 +774,7 @@ This test ensures all acceptance criteria are met through executable scenarios.'
             scenario_results = [
                 {
                     'scenario': 'Complete user registration process',
-                    'status': 'PASS',
+                    'status': 'PASSED',
                     'comment': 'All registration steps completed successfully. REQ-001 and REQ-002 satisfied.'
                 }
             ]
@@ -785,7 +785,7 @@ This test ensures all acceptance criteria are met through executable scenarios.'
                 'action': 'update_status',
                 'test_execution_id': execution_id,
                 'test_issue_id': bdd_test_id,
-                'status': 'PASS',
+                'status': 'PASSED',
                 'comment': '''BDD Test Execution Results:
 
 ✓ Complete user registration process - PASSED
@@ -826,7 +826,7 @@ All BDD scenarios passed. Requirements fully implemented and validated.'''
             assert len(test_runs) == 1, "Should have 1 BDD test run"
 
             bdd_test_run = test_runs[0]
-            assert bdd_test_run['status']['name'] == 'PASS', "BDD test should have passed"
+            assert bdd_test_run['status']['name'] == 'PASSED', "BDD test should have passed"
             assert 'Requirements Coverage' in bdd_test_run['comment'], "Should contain requirements traceability"
 
             # Create test plan for requirements coverage

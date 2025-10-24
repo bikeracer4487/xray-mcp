@@ -6,6 +6,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 load_dotenv()
 
@@ -53,7 +54,7 @@ class TestGraphQLTemplateValidation:
         result = await tool.run(create_params)
         assert isinstance(result, list), "Create should return list"
 
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         print(f"Manual test creation result: {data}")
 
         # Should succeed with fixed CreateStepInput type
@@ -101,7 +102,7 @@ Scenario: Successful login
         result = await tool.run(create_params)
         assert isinstance(result, list), "Create should return list"
 
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         print(f"Cucumber test creation result: {data}")
 
         # Should succeed with fixed gherkin field
@@ -150,7 +151,7 @@ Scenario: Successful login
         result = await tool.run(create_params)
         assert isinstance(result, list), "Create should return list"
 
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         print(f"Generic test creation result: {data}")
 
         # Should succeed with proper template

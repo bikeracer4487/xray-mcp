@@ -63,6 +63,17 @@ excluded_tools: []
 
 # initial prompt for the project. It will always be given to the LLM upon activating the project
 # (contrary to the memories, which are loaded on demand).
-initial_prompt: ""
+initial_prompt: |
+  Project 'xray-mcp-rebuild' is now active in Serena MCP.
+
+  Onboarding complete. Available memories: xray_api_constraints, codebase_structure, project_overview, suggested_commands, code_style_conventions, task_completion_checklist
+
+  Use Serena MCP tools for all code exploration and modification:
+  - get_symbols_overview for file structure
+  - find_symbol for targeted code reading
+  - search_for_pattern for flexible searches
+  - Symbolic editing tools (replace_symbol_body, insert_after_symbol, etc.)
+
+  Read memories only when relevant to the current task.
 
 project_name: "xray-mcp-rebuild"

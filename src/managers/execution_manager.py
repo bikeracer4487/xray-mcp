@@ -12,8 +12,14 @@ from ..utils.graphql_templates import (
 class ExecutionManager(XrayEntityManager):
     """Manager for Xray test execution operations."""
 
+    def __init__(self, client):
+        """Initialize ExecutionManager with indexing delay mitigation."""
+        super().__init__(client)
+        from ..utils.retry_strategy import IndexingDelayMitigator
+        self.retry_mitigator = IndexingDelayMitigator()
+
     async def create(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new test execution."""
+        """Create a new test execution with array validation for test IDs."""
         project_key = params.get('project_key')
         summary = params.get('summary')
         test_issue_ids = params.get('test_issue_ids', [])
@@ -23,6 +29,19 @@ class ExecutionManager(XrayEntityManager):
             return self.create_error_result("Missing required parameter: project_key")
         if not summary:
             return self.create_error_result("Missing required parameter: summary")
+
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate test_issue_ids array if provided (allow empty arrays for creation)
+        if test_issue_ids:
+            validation_result = IDFormatValidator.validate_id_array_for_xray_graphql_allow_empty(test_issue_ids, "test")
+            if not validation_result.is_valid:
+                # Provide helpful error message for array validation issues
+                error_msg = f"Invalid test_issue_ids: {validation_result.error_message}"
+                if validation_result.helpful_message:
+                    error_msg += f". {validation_result.helpful_message}"
+                return self.create_error_result(error_msg)
 
         try:
             variables = {
@@ -50,38 +69,42 @@ class ExecutionManager(XrayEntityManager):
             if result['createTestExecution'].get('createdTestEnvironments'):
                 response_data['createdTestEnvironments'] = result['createTestExecution']['createdTestEnvironments']
 
+            # Add indexing delay advisory for immediate follow-up operations
+            warnings.append(
+                f"INDEXING DELAY ADVISORY: Test execution '{response_data['issueKey']}' created successfully. "
+                f"If you plan to immediately search for, retrieve, or add tests to this execution, "
+                f"please wait 2-5 seconds for Xray indexing to complete."
+            )
+
             return self.create_success_result(response_data, warnings)
 
         except Exception as e:
             return self.create_error_result(f"Failed to create test execution: {str(e)}")
 
     async def get(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Get test execution by issue ID with retry logic for indexing delays."""
-        import asyncio
-
+        """Get test execution by issue ID with advanced indexing delay mitigation and ID format validation."""
         issue_id = params.get('issue_id')
         if not issue_id:
             return self.create_error_result("Missing required parameter: issue_id")
 
-        # Retry logic for indexing delays
-        max_retries = 3
-        base_delay = 2  # seconds
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
 
-        for attempt in range(max_retries + 1):
-            try:
-                variables = {'issueId': issue_id}
-                result = await self.execute_query(GET_TEST_EXECUTION, variables)
+        # Validate ID format before making API calls
+        validation_result = IDFormatValidator.validate_for_xray_graphql(issue_id, "test_execution")
+        if not validation_result.is_valid:
+            # Provide helpful error message for ID format issues
+            error_msg = validation_result.error_message
+            if validation_result.helpful_message:
+                error_msg += f". {validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
 
-                if not result.get('getTestExecution'):
-                    # If this is the last attempt, return the error
-                    if attempt == max_retries:
-                        return self.create_error_result(f"Test execution with issue ID {issue_id} not found")
+        async def get_operation():
+            variables = {'issueId': issue_id}
+            result = await self.execute_query(GET_TEST_EXECUTION, variables)
 
-                    # Otherwise, wait and retry (likely indexing delay)
-                    delay = base_delay * (2 ** attempt)  # Exponential backoff: 2, 4, 8 seconds
-                    await asyncio.sleep(delay)
-                    continue
-
+            if result.get('getTestExecution'):
+                # Success case
                 execution_data = result['getTestExecution']
                 response_data = self.extract_jira_data(execution_data)
 
@@ -91,22 +114,31 @@ class ExecutionManager(XrayEntityManager):
                 if execution_data.get('tests'):
                     response_data['tests'] = execution_data['tests']
 
-                return self.create_success_result(response_data)
+                return response_data
+            else:
+                raise Exception(f"Test execution with issue ID {issue_id} not found")
 
-            except Exception as e:
-                # Check if it's an indexing-related error
-                error_str = str(e).lower()
-                if any(keyword in error_str for keyword in ['index', 're-index', 'not found']) and attempt < max_retries:
-                    # Wait and retry for indexing issues
-                    delay = base_delay * (2 ** attempt)
-                    await asyncio.sleep(delay)
-                    continue
+        # Use advanced retry strategy with indexing delay mitigation
+        retry_result = await self.retry_mitigator.execute_with_retry(
+            get_operation,
+            f"get_execution_{issue_id}",
+            expected_indexing_delay=True
+        )
 
-                # For other errors or final attempt, return error
-                return self.create_error_result(f"Failed to get test execution: {str(e)}")
-
-        # Should not reach here, but fallback
-        return self.create_error_result(f"Failed to get test execution after {max_retries} retries")
+        if retry_result.success:
+            return self.create_success_result(retry_result.result)
+        else:
+            # Enhanced error message for failed operations
+            error_msg = f"Failed to get test execution after {retry_result.attempts} attempts"
+            if retry_result.last_error:
+                error_msg += f": {str(retry_result.last_error)}"
+            
+            # If the error is "not found" and user provided what looks like a numeric ID,
+            # this might be a real indexing delay or the execution doesn't exist
+            if "not found" in error_msg.lower():
+                error_msg += f". Note: Using numeric ID '{issue_id}' (correct format). If execution was just created, try again in a few seconds due to indexing delays."
+            
+            return self.create_error_result(error_msg)
 
     async def list(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """List test executions with optional filtering."""
@@ -149,13 +181,25 @@ class ExecutionManager(XrayEntityManager):
             return self.create_error_result(f"Failed to list test executions: {str(e)}")
 
     async def delete(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Delete test execution by issue ID."""
+        """Delete test execution by issue ID with ID format validation."""
         issue_id = params.get('issue_id')
         if not issue_id:
             return self.create_error_result("Missing required parameter: issue_id")
 
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate ID format before making API calls
+        validation_result = IDFormatValidator.validate_for_xray_graphql(issue_id, "test_execution")
+        if not validation_result.is_valid:
+            # Provide helpful error message for ID format issues
+            error_msg = validation_result.error_message
+            if validation_result.helpful_message:
+                error_msg += f". {validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
+
         try:
-            # First verify the test execution exists
+            # First verify the test execution exists (this will also benefit from ID validation in get method)
             get_result = await self.get({'issue_id': issue_id})
             if not get_result['success']:
                 return self.create_error_result(f"Cannot delete test execution: {get_result['errors'][0]}")
@@ -169,17 +213,48 @@ class ExecutionManager(XrayEntityManager):
             return self.create_success_result(response_data)
 
         except Exception as e:
-            return self.create_error_result(f"Failed to delete test execution: {str(e)}")
+            error_msg = f"Failed to delete test execution: {str(e)}"
+            
+            # Enhance error message if it's a "not found" error
+            if "not found" in error_msg.lower():
+                error_msg += f". Note: Using numeric ID '{issue_id}' (correct format). Verify the test execution exists and try again if recently created (indexing delays)."
+            
+            return self.create_error_result(error_msg)
 
     async def add_tests(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Add tests to test execution."""
+        """Add tests to test execution with ID format validation."""
         issue_id = params.get('issue_id')
-        test_issue_ids = params.get('test_issue_ids', [])
+        test_issue_ids = params.get('test_issue_ids')
 
         if not issue_id:
             return self.create_error_result("Missing required parameter: issue_id")
-        if not test_issue_ids:
+        
+        # Check if test_issue_ids parameter was provided
+        if test_issue_ids is None:
             return self.create_error_result("Missing required parameter: test_issue_ids")
+        
+        # Check if array is empty
+        if len(test_issue_ids) == 0:
+            return self.create_error_result("At least one test ID must be provided in test_issue_ids array")
+
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate execution ID format
+        validation_result = IDFormatValidator.validate_for_xray_graphql(issue_id, "test_execution")
+        if not validation_result.is_valid:
+            error_msg = f"Invalid execution issue_id: {validation_result.error_message}"
+            if validation_result.helpful_message:
+                error_msg += f". {validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
+
+        # Validate test_issue_ids array
+        array_validation_result = IDFormatValidator.validate_id_array_for_xray_graphql(test_issue_ids, "test")
+        if not array_validation_result.is_valid:
+            error_msg = f"Invalid test_issue_ids: {array_validation_result.error_message}"
+            if array_validation_result.helpful_message:
+                error_msg += f". {array_validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
 
         try:
             variables = {
@@ -196,14 +271,39 @@ class ExecutionManager(XrayEntityManager):
             return self.create_error_result(f"Failed to add tests to test execution: {str(e)}")
 
     async def remove_tests(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove tests from test execution."""
+        """Remove tests from test execution with ID format validation."""
         issue_id = params.get('issue_id')
-        test_issue_ids = params.get('test_issue_ids', [])
+        test_issue_ids = params.get('test_issue_ids')
 
         if not issue_id:
             return self.create_error_result("Missing required parameter: issue_id")
-        if not test_issue_ids:
+        
+        # Check if test_issue_ids parameter was provided
+        if test_issue_ids is None:
             return self.create_error_result("Missing required parameter: test_issue_ids")
+        
+        # Check if array is empty
+        if len(test_issue_ids) == 0:
+            return self.create_error_result("At least one test ID must be provided in test_issue_ids array")
+
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate execution ID format
+        validation_result = IDFormatValidator.validate_for_xray_graphql(issue_id, "test_execution")
+        if not validation_result.is_valid:
+            error_msg = f"Invalid execution issue_id: {validation_result.error_message}"
+            if validation_result.helpful_message:
+                error_msg += f". {validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
+
+        # Validate test_issue_ids array
+        array_validation_result = IDFormatValidator.validate_id_array_for_xray_graphql(test_issue_ids, "test")
+        if not array_validation_result.is_valid:
+            error_msg = f"Invalid test_issue_ids: {array_validation_result.error_message}"
+            if array_validation_result.helpful_message:
+                error_msg += f". {array_validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
 
         try:
             variables = {
@@ -270,3 +370,68 @@ class ExecutionManager(XrayEntityManager):
 
         except Exception as e:
             return self.create_error_result(f"Failed to remove test environments from test execution: {str(e)}")
+
+    async def update_metadata(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Update test execution metadata (summary and description) with enhanced workaround guidance.
+
+        Note: Xray's GraphQL API does not support direct metadata updates for executions.
+        This provides comprehensive workaround guidance specific to test executions.
+        """
+        issue_id = params.get('issue_id')
+        summary = params.get('summary')
+        description = params.get('description')
+
+        if not issue_id:
+            return self.create_error_result("Missing required parameter: issue_id")
+
+        if not summary and not description:
+            return self.create_error_result("At least one of summary or description must be provided")
+
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate ID format to provide helpful guidance
+        validation_result = IDFormatValidator.validate_for_xray_graphql(issue_id, "test_execution")
+        if not validation_result.is_valid:
+            error_msg = f"Invalid execution ID: {validation_result.error_message}"
+            if validation_result.helpful_message:
+                error_msg += f". {validation_result.helpful_message}"
+            return self.create_error_result(error_msg)
+
+        # Get current execution details to provide context for workarounds
+        try:
+            current_execution = await self.get({'issue_id': issue_id})
+            if not current_execution['success']:
+                return self.create_error_result(f"Cannot update metadata: {current_execution['errors'][0]}")
+
+            exec_data = current_execution['data']
+            exec_key = exec_data.get('issueKey', 'Unknown')
+            project_key = exec_key.split('-')[0] if '-' in exec_key else 'PROJECT'
+
+            # Create detailed workaround guidance for test execution metadata
+            workaround_guidance = [
+                f"1. JIRA UI: Navigate to {exec_key} in Jira and edit Summary/Description directly",
+                f"2. RECREATION: Create a new test execution with desired metadata:",
+                f"   entity='test_execution', action='create', project_key='{project_key}', summary='{summary or exec_data.get('summary', 'New Summary')}', description='{description or exec_data.get('description', 'New Description')}'",
+                f"3. JIRA REST API: Use Jira's REST API PUT /rest/api/2/issue/{exec_key} with appropriate authentication",
+                f"4. BULK EDIT: If updating multiple executions, use Jira's bulk edit feature in the UI"
+            ]
+
+            error_lines = [
+                "LIMITATION: Metadata-only updates are not supported by Xray's GraphQL API",
+                f"EXECUTION CONTEXT: {exec_key} (ID: {issue_id})",
+                "WORKAROUND OPTIONS:"
+            ]
+            error_lines.extend(workaround_guidance)
+            return self.create_error_result("; ".join(error_lines))
+
+        except Exception as e:
+            # Fallback to basic error message if we can't get execution details
+            error_message = "; ".join([
+                "Metadata-only updates are not supported by Xray's GraphQL API for test executions",
+                "This is a known limitation of the Xray Cloud platform",
+                "Workarounds: (1) Update metadata directly in Jira UI",
+                "(2) Use Jira's REST API separately (requires additional authentication setup)",
+                "(3) Create a new execution with desired metadata"
+            ])
+            return self.create_error_result(error_message)

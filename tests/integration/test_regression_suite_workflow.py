@@ -147,9 +147,9 @@ class TestRegressionSuiteWorkflow:
 
             # Step 5: Execute tests with different outcomes
             test_outcomes = [
-                {'status': 'PASS', 'comment': 'Login functionality working correctly'},
-                {'status': 'FAIL', 'comment': 'API endpoint returning 503 error'},
-                {'status': 'PASS', 'comment': 'Database connectivity verified'},
+                {'status': 'PASSED', 'comment': 'Login functionality working correctly'},
+                {'status': 'FAILED', 'comment': 'API endpoint returning 503 error'},
+                {'status': 'PASSED', 'comment': 'Database connectivity verified'},
                 {'status': 'TODO', 'comment': 'Performance test scheduled for later'}
             ]
 
@@ -167,7 +167,7 @@ class TestRegressionSuiteWorkflow:
 
             # Step 6: Add defects to failed tests
             for i, (test_run, outcome) in enumerate(zip(test_runs, test_outcomes)):
-                if outcome['status'] == 'FAIL':
+                if outcome['status'] == 'FAILED':
                     # In a real scenario, we would create actual defects
                     # For this test, we'll simulate with comments
                     defect_result = await tool.execute({
@@ -192,15 +192,15 @@ class TestRegressionSuiteWorkflow:
 
             # Verify all test runs have been updated
             statuses = [run.get('status', {}).get('name', 'UNKNOWN') for run in final_test_runs]
-            expected_statuses = ['PASS', 'FAIL', 'PASS', 'TODO']
+            expected_statuses = ['PASSED', 'FAILED', 'PASSED', 'TODO']
 
             # Count status distribution
             status_count = {}
             for status in statuses:
                 status_count[status] = status_count.get(status, 0) + 1
 
-            assert status_count.get('PASS', 0) >= 2, "Should have at least 2 passed tests"
-            assert status_count.get('FAIL', 0) >= 1, "Should have at least 1 failed test"
+            assert status_count.get('PASSED', 0) >= 2, "Should have at least 2 passed tests"
+            assert status_count.get('FAILED', 0) >= 1, "Should have at least 1 failed test"
 
         finally:
             # Cleanup created resources
@@ -289,7 +289,7 @@ class TestRegressionSuiteWorkflow:
                     'action': 'update_status',
                     'test_execution_id': execution_id,
                     'test_issue_id': test_id,
-                    'status': 'PASS',
+                    'status': 'PASSED',
                     'comment': 'Smoke test passed - deployment ready'
                 })
 
@@ -403,9 +403,9 @@ class TestRegressionSuiteWorkflow:
 
             # Execute tests with mixed results (realistic feature testing)
             test_results = [
-                {'status': 'PASS', 'comment': 'Profile creation working correctly'},
-                {'status': 'FAIL', 'comment': 'Update validation not working - allows invalid phone format'},
-                {'status': 'PASS', 'comment': 'Delete functionality working with proper confirmation'}
+                {'status': 'PASSED', 'comment': 'Profile creation working correctly'},
+                {'status': 'FAILED', 'comment': 'Update validation not working - allows invalid phone format'},
+                {'status': 'PASSED', 'comment': 'Delete functionality working with proper confirmation'}
             ]
 
             for i, result_data in enumerate(test_results):
@@ -433,8 +433,8 @@ class TestRegressionSuiteWorkflow:
 
             # Verify we have both passed and failed tests (realistic scenario)
             statuses = [run.get('status', {}).get('name', 'UNKNOWN') for run in test_runs]
-            assert 'PASS' in statuses, "Should have some passed tests"
-            assert 'FAIL' in statuses, "Should have some failed tests (realistic feature testing)"
+            assert 'PASSED' in statuses, "Should have some passed tests"
+            assert 'FAILED' in statuses, "Should have some failed tests (realistic feature testing)"
 
         finally:
             # Cleanup
@@ -507,7 +507,7 @@ class TestRegressionSuiteWorkflow:
                 'action': 'update_status',
                 'test_execution_id': execution_id,
                 'test_issue_id': test_id,
-                'status': 'PASS',
+                'status': 'PASSED',
                 'comment': 'All environment checks passed - Production environment ready'
             })
 
@@ -593,7 +593,7 @@ class TestRegressionSuiteWorkflow:
                         'action': 'update_status',
                         'test_execution_id': execution_id,
                         'test_issue_id': test_id,
-                        'status': 'PASS',
+                        'status': 'PASSED',
                         'comment': f'Parallel execution completed for {test_id}'
                     })
 

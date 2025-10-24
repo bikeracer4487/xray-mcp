@@ -6,6 +6,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 load_dotenv()
 
@@ -456,7 +457,7 @@ class TestCompleteFunctionality:
         }
 
         result = await tool.run(invalid_entity_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         assert not data['success'], "Should fail with invalid entity"
         assert 'invalid entity' in data['errors'][0].lower()
         print(f"✅ 1. Invalid entity handled correctly")
@@ -468,7 +469,7 @@ class TestCompleteFunctionality:
         }
 
         result = await tool.run(invalid_action_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         assert not data['success'], "Should fail with invalid action"
         assert 'invalid action' in data['errors'][0].lower()
         print(f"✅ 2. Invalid action handled correctly")
@@ -481,7 +482,7 @@ class TestCompleteFunctionality:
         }
 
         result = await tool.run(missing_param_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         assert not data['success'], "Should fail with missing parameters"
         assert 'missing' in data['errors'][0].lower()
         print(f"✅ 3. Missing parameters handled correctly")
@@ -494,7 +495,7 @@ class TestCompleteFunctionality:
         }
 
         result = await tool.run(invalid_id_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
         assert not data['success'], "Should fail with invalid issue ID"
         print(f"✅ 4. Invalid issue ID handled correctly")
 
@@ -514,7 +515,7 @@ class TestCompleteFunctionality:
             }
 
             result = await tool.run(params)
-            data = json.loads(result[0].text)
+            data = parse_mcp_response(result)
 
             # Should either succeed or fail gracefully (not crash on entity)
             if not data['success']:

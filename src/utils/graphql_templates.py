@@ -252,7 +252,7 @@ mutation DeleteTestPlan($issueId: String!) {
 ADD_TESTS_TO_PLAN = """
 mutation AddTestsToTestPlan($issueId: String!, $testIssueIds: [String!]!) {
     addTestsToTestPlan(issueId: $issueId, testIssueIds: $testIssueIds) {
-        associatedTests
+        addedTests
         warning
     }
 }
@@ -342,7 +342,10 @@ mutation AddDefectsToTestRun($id: String!, $issues: [String]!) {
 UPDATE_TEST_TYPE = """
 mutation UpdateTestType($issueId: String!, $testType: UpdateTestTypeInput!) {
     updateTestType(issueId: $issueId, testType: $testType) {
-        warnings
+        issueId
+        testType {
+            name
+        }
     }
 }
 """
@@ -358,6 +361,26 @@ mutation UpdateUnstructuredTestDefinition($issueId: String!, $unstructured: Stri
 UPDATE_GHERKIN_TEST_DEFINITION = """
 mutation UpdateGherkinTestDefinition($issueId: String!, $gherkin: String!) {
     updateGherkinTestDefinition(issueId: $issueId, gherkin: $gherkin) {
+        issueId
+    }
+}
+"""
+
+UPDATE_TEST_METADATA = """
+mutation UpdateTest($issueId: String!, $summary: String, $description: String) {
+    updateTest(
+        issueId: $issueId
+        jira: {
+            fields: {
+                summary: $summary
+                description: $description
+            }
+        }
+    ) {
+        test {
+            issueId
+            jira(fields: ["key", "summary", "description"])
+        }
         warnings
     }
 }

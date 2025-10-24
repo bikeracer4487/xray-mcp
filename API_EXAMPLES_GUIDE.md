@@ -1,8 +1,45 @@
 # Xray MCP Server - Comprehensive API Examples Guide
 
+## ⚠️ CRITICAL: ID Format Requirements
+
+**IMPORTANT:** Many examples in this guide use JIRA keys (e.g., "FTEST-123") which **DO NOT WORK** with the Xray GraphQL API. The API requires **numeric issue IDs** only.
+
+### ✅ Correct Pattern
+```json
+// Step 1: List to get numeric IDs
+{
+  "entity": "test",
+  "action": "list",
+  "project_key": "FTEST"
+}
+// Returns: {"issueId": "1192649", "issueKey": "FTEST-123", ...}
+
+// Step 2: Use numeric ID for operations
+{
+  "entity": "test",
+  "action": "get",
+  "issue_id": "1192649"  // ✅ Use this (numeric)
+}
+```
+
+### ❌ Incorrect Pattern
+```json
+{
+  "entity": "test",
+  "action": "get",
+  "issue_id": "FTEST-123"  // ❌ This will fail
+}
+```
+
+**📖 For complete details, see [ID_FORMAT_REQUIREMENTS.md](./ID_FORMAT_REQUIREMENTS.md)**
+
+---
+
 ## Overview
 
 This guide provides comprehensive examples for using the Xray MCP server, covering all entities, operations, and real-world use cases. Examples are organized by complexity and use case type.
+
+**⚠️ Note:** Examples below use JIRA key format for readability, but remember to use numeric IDs in actual implementation.
 
 ---
 

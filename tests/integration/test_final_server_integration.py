@@ -4,6 +4,7 @@ import pytest
 import os
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 load_dotenv()
 
@@ -90,7 +91,7 @@ class TestFinalServerIntegration:
 
         # Parse JSON response
         import json
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
 
         assert 'success' in data, "Should have success field"
         assert 'data' in data, "Should have data field"

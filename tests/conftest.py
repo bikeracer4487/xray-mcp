@@ -12,6 +12,11 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
+from fastmcp import Client
+import subprocess
+import json
+import sys
+import pathlib
 
 # Load environment variables from .env file
 load_dotenv()
@@ -346,6 +351,239 @@ def performance_timer():
     return PerformanceTimer
 
 
+# MCP Protocol Testing Fixtures
+
+@pytest.fixture(scope="session")
+def server_script_path():
+    """Get the path to the MCP server script."""
+    # Use main.py as the entry point for the MCP server
+    repo_root = pathlib.Path(__file__).parent.parent
+    return str(repo_root / "main.py")
+
+
+@pytest_asyncio.fixture
+async def mcp_client(server_script_path):
+    """Create FastMCP Client that connects to server via stdio protocol."""
+    client = None
+    try:
+        client = Client(server_script_path)
+        await client.__aenter__()
+        yield client
+    finally:
+        if client:
+            try:
+                await client.__aexit__(None, None, None)
+            except RuntimeError as e:
+                if "cancel scope" not in str(e):
+                    raise
+
+
+@pytest_asyncio.fixture
+async def mcp_client_with_timeout(server_script_path):
+    """Create FastMCP Client with custom timeout for slow operations."""
+    client = None
+    try:
+        client = Client(server_script_path, timeout=60.0)
+        await client.__aenter__()
+        yield client
+    finally:
+        if client:
+            try:
+                await client.__aexit__(None, None, None)
+            except RuntimeError as e:
+                if "cancel scope" not in str(e):
+                    raise
+
+
+@pytest.fixture
+def mock_xray_responses():
+    """Mock responses for Xray API calls for deterministic testing."""
+    return {
+        'auth_success': {
+            'access_token': 'mock_token_123',
+            'token_type': 'Bearer',
+            'expires_in': 3600
+        },
+        'test_list': {
+            'data': {
+                'getTests': {
+                    'results': [
+                        {
+                            'issueId': '12345',
+                            'jira': {
+                                'key': 'TEST-123',
+                                'summary': 'Sample Test',
+                                'description': 'Test description'
+                            },
+                            'testType': {'name': 'Manual'}
+                        }
+                    ]
+                }
+            }
+        },
+        'test_create': {
+            'data': {
+                'createTest': {
+                    'test': {
+                        'issueId': '12346',
+                        'jira': {
+                            'key': 'TEST-124',
+                            'summary': 'New Test',
+                            'description': 'New test description'
+                        },
+                        'testType': {'name': 'Manual'}
+                    }
+                }
+            }
+        },
+        'execution_create': {
+            'data': {
+                'createTestExecution': {
+                    'testExecution': {
+                        'issueId': '67890',
+                        'jira': {
+                            'key': 'EXEC-456',
+                            'summary': 'Test Execution',
+                            'description': 'Execution description'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+@pytest.fixture
+def subprocess_server_config():
+    """Configuration for subprocess-based server testing."""
+    return {
+        'timeout': 30.0,
+        'startup_timeout': 10.0,
+        'shutdown_timeout': 5.0,
+        'env_vars': {
+            'XRAY_CLIENT_ID': 'test_client_id',
+            'XRAY_CLIENT_SECRET': 'test_client_secret',
+            'XRAY_BASE_URL': 'https://xray.cloud.getxray.app'
+        }
+    }
+
+
+class MCPServerProcess:
+    """Manages MCP server subprocess for testing."""
+
+    def __init__(self, server_script_path: str, env_vars: dict = None):
+        self.server_script_path = server_script_path
+        self.env_vars = env_vars or {}
+        self.process = None
+
+    async def start(self):
+        """Start the MCP server process."""
+        env = os.environ.copy()
+        env.update(self.env_vars)
+
+        self.process = await asyncio.create_subprocess_exec(
+            sys.executable, self.server_script_path,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env
+        )
+
+        # Wait a moment for server to initialize
+        await asyncio.sleep(0.5)
+
+        if self.process.returncode is not None:
+            stderr = await self.process.stderr.read()
+            raise RuntimeError(f"Server failed to start: {stderr.decode()}")
+
+        return self.process
+
+    async def stop(self):
+        """Stop the MCP server process."""
+        if self.process and self.process.returncode is None:
+            self.process.terminate()
+            try:
+                await asyncio.wait_for(self.process.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+
+    async def send_json_rpc(self, request: dict) -> dict:
+        """Send JSON-RPC request and get response."""
+        if not self.process:
+            raise RuntimeError("Server not started")
+
+        request_data = json.dumps(request) + "\n"
+        self.process.stdin.write(request_data.encode())
+        await self.process.stdin.drain()
+
+        try:
+            # Add timeout to prevent hanging on malformed requests
+            response_line = await asyncio.wait_for(
+                self.process.stdout.readline(),
+                timeout=10.0
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("Server did not respond within timeout")
+
+        if not response_line:
+            raise RuntimeError("No response from server")
+
+        return json.loads(response_line.decode())
+
+
+@pytest_asyncio.fixture
+async def mcp_server_process(server_script_path, subprocess_server_config):
+    """Managed MCP server subprocess for testing."""
+    server = MCPServerProcess(
+        server_script_path,
+        subprocess_server_config['env_vars']
+    )
+
+    await server.start()
+    yield server
+    await server.stop()
+
+
+@pytest.fixture
+def mcp_test_scenarios():
+    """Common test scenarios for MCP protocol testing."""
+    return {
+        'initialize_request': {
+            'jsonrpc': '2.0',
+            'id': 1,
+            'method': 'initialize',
+            'params': {
+                'protocolVersion': '2024-11-05',
+                'capabilities': {},
+                'clientInfo': {
+                    'name': 'test-client',
+                    'version': '1.0.0'
+                }
+            }
+        },
+        'list_tools_request': {
+            'jsonrpc': '2.0',
+            'id': 2,
+            'method': 'tools/list',
+            'params': {}
+        },
+        'call_tool_request': {
+            'jsonrpc': '2.0',
+            'id': 3,
+            'method': 'tools/call',
+            'params': {
+                'name': 'xray_test',
+                'arguments': {
+                    'entity': 'test',
+                    'action': 'list',
+                    'project_key': 'DEMO'
+                }
+            }
+        }
+    }
+
+
 # Test markers for categorization
 
 def pytest_configure(config):
@@ -370,6 +608,21 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         "markers", "workflow: marks tests as workflow tests"
+    )
+    config.addinivalue_line(
+        "markers", "mcp_protocol: marks tests as MCP protocol tests"
+    )
+    config.addinivalue_line(
+        "markers", "mcp_client: marks tests using FastMCP Client"
+    )
+    config.addinivalue_line(
+        "markers", "mcp_subprocess: marks tests using subprocess communication"
+    )
+    config.addinivalue_line(
+        "markers", "mcp_compliance: marks tests for MCP specification compliance"
+    )
+    config.addinivalue_line(
+        "markers", "jsonrpc: marks tests for JSON-RPC protocol compliance"
     )
 
 

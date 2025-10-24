@@ -6,6 +6,7 @@ import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 from src.server import create_server
+from tests.integration.test_helpers import parse_mcp_response
 
 # Load environment for authentication
 load_dotenv()
@@ -94,7 +95,7 @@ class TestResourcesAndPrompts:
         }
 
         result = await tool.run(create_params)
-        data = json.loads(result[0].text)
+        data = parse_mcp_response(result)
 
         if data['success']:
             test_id = data['data']['issueId']

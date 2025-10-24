@@ -308,7 +308,7 @@ class TestPerformanceAndLoad:
                     'action': 'update_status',
                     'test_execution_id': execution_id,
                     'test_issue_id': test_id,
-                    'status': 'PASS' if i % 2 == 0 else 'FAIL',
+                    'status': 'PASSED' if i % 2 == 0 else 'FAILED',
                     'comment': f'Bulk performance test result {i+1}'
                 })
                 status_update_tasks.append(task)

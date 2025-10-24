@@ -232,7 +232,7 @@ class TestMalformedInputHandling:
             'entity': 'test_run',
             'action': 'update_status',
             'test_issue_id': 'TEST-123',
-            'status': 'PASS'
+            'status': 'PASSED'
         })
 
         assert not result['success'], "Should fail without test_execution_id"

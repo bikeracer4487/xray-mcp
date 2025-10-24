@@ -6,17 +6,23 @@ from ..utils.graphql_templates import (
     GET_TEST_RUN, LIST_TEST_RUNS, UPDATE_TEST_RUN_STATUS,
     UPDATE_TEST_RUN_COMMENT, ADD_DEFECTS_TO_TEST_RUN
 )
+from ..utils.retry_strategy import IndexingDelayMitigator
 
 
 class RunManager(XrayEntityManager):
     """Manager for Xray test run operations."""
+
+    def __init__(self, client):
+        """Initialize RunManager with indexing delay mitigation."""
+        super().__init__(client)
+        self.retry_mitigator = IndexingDelayMitigator()
 
     async def create(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Test runs are created automatically when tests are added to executions."""
         return self.create_error_result("Test runs are created automatically when tests are added to executions")
 
     async def get(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Get test run by execution and test ID."""
+        """Get test run by execution and test ID with advanced indexing delay mitigation and ID format validation."""
         test_execution_id = params.get('test_execution_id')
         test_issue_id = params.get('test_issue_id')
 
@@ -25,7 +31,25 @@ class RunManager(XrayEntityManager):
         if not test_issue_id:
             return self.create_error_result("Missing required parameter: test_issue_id")
 
-        try:
+        # Import ID validation utility
+        from ..utils.id_validation import IDFormatValidator
+
+        # Validate both ID formats before making API calls
+        execution_validation = IDFormatValidator.validate_for_xray_graphql(test_execution_id, "test_execution")
+        if not execution_validation.is_valid:
+            error_msg = f"Invalid test_execution_id: {execution_validation.error_message}"
+            if execution_validation.helpful_message:
+                error_msg += f". {execution_validation.helpful_message}"
+            return self.create_error_result(error_msg)
+
+        test_validation = IDFormatValidator.validate_for_xray_graphql(test_issue_id, "test")
+        if not test_validation.is_valid:
+            error_msg = f"Invalid test_issue_id: {test_validation.error_message}"
+            if test_validation.helpful_message:
+                error_msg += f". {test_validation.helpful_message}"
+            return self.create_error_result(error_msg)
+
+        async def get_operation():
             variables = {
                 'testExecIssueId': test_execution_id,
                 'testIssueId': test_issue_id
@@ -33,30 +57,47 @@ class RunManager(XrayEntityManager):
 
             result = await self.execute_query(GET_TEST_RUN, variables)
 
-            if not result.get('getTestRun'):
-                return self.create_error_result(
-                    f"Test run not found for execution {test_execution_id} and test {test_issue_id}"
-                )
+            if result.get('getTestRun'):
+                # Success case
+                run_data = result['getTestRun']
+                response_data = {
+                    'id': run_data['id'],
+                    'status': run_data['status'],
+                    'comment': run_data.get('comment'),
+                    'startedOn': run_data.get('startedOn'),
+                    'finishedOn': run_data.get('finishedOn'),
+                    'executedById': run_data.get('executedById'),
+                    'assigneeId': run_data.get('assigneeId'),
+                    'evidence': run_data.get('evidence', []),
+                    'defects': run_data.get('defects', []),
+                    'testId': run_data['test']['issueId'],
+                    'testExecutionId': run_data['testExecution']['issueId']
+                }
+                return response_data
+            else:
+                raise Exception(f"Test run not found for execution {test_execution_id} and test {test_issue_id}")
 
-            run_data = result['getTestRun']
-            response_data = {
-                'id': run_data['id'],
-                'status': run_data['status'],
-                'comment': run_data.get('comment'),
-                'startedOn': run_data.get('startedOn'),
-                'finishedOn': run_data.get('finishedOn'),
-                'executedById': run_data.get('executedById'),
-                'assigneeId': run_data.get('assigneeId'),
-                'evidence': run_data.get('evidence', []),
-                'defects': run_data.get('defects', []),
-                'testId': run_data['test']['issueId'],
-                'testExecutionId': run_data['testExecution']['issueId']
-            }
+        # Use advanced retry strategy with indexing delay mitigation
+        retry_result = await self.retry_mitigator.execute_with_retry(
+            get_operation,
+            f"get_run_{test_execution_id}_{test_issue_id}",
+            expected_indexing_delay=True
+        )
 
-            return self.create_success_result(response_data)
-
-        except Exception as e:
-            return self.create_error_result(f"Failed to get test run: {str(e)}")
+        if retry_result.success:
+            return self.create_success_result(retry_result.result)
+        else:
+            # Enhanced error message for failed operations
+            error_msg = f"Failed to get test run after {retry_result.attempts} attempts"
+            if retry_result.last_error:
+                error_msg += f": {str(retry_result.last_error)}"
+            
+            # If the error is "not found" and user provided what looks like a numeric ID,
+            # this might be a real indexing delay or the run doesn't exist
+            if "not found" in error_msg.lower():
+                error_msg += f". Note: Using numeric IDs '{test_execution_id}' and '{test_issue_id}' (correct format). If test run was just created, try again in a few seconds due to indexing delays."
+            
+            return self.create_error_result(error_msg)
 
     async def list(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """List test runs with optional filtering by test or execution IDs."""
@@ -119,6 +160,13 @@ class RunManager(XrayEntityManager):
 
         if not status:
             return self.create_error_result("Missing required parameter: status")
+
+        # Validate status value
+        valid_statuses = {'PASSED', 'FAILED', 'TODO', 'EXECUTING', 'BLOCKED'}
+        if status not in valid_statuses:
+            return self.create_error_result(
+                f"Invalid status '{status}'. Valid statuses are: {', '.join(sorted(valid_statuses))}"
+            )
 
         # If run_id not provided, get it from execution/test lookup
         if not run_id:

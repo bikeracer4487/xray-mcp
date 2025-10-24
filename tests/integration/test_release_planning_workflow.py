@@ -255,7 +255,7 @@ class TestReleasePlanningWorkflow:
                                 'action': 'update_status',
                                 'test_execution_id': execution_id,
                                 'test_issue_id': test_issue_id,
-                                'status': 'PASS',
+                                'status': 'PASSED',
                                 'comment': 'Critical path test passed - release blocker cleared'
                             })
 
@@ -287,7 +287,7 @@ class TestReleasePlanningWorkflow:
                                     'action': 'update_status',
                                     'test_execution_id': execution_id,
                                     'test_issue_id': test_issue_id,
-                                    'status': 'FAIL',
+                                    'status': 'FAILED',
                                     'comment': 'CRITICAL BUG: Credit card validation not working - Invalid cards accepted'
                                 })
 
@@ -320,9 +320,9 @@ class TestReleasePlanningWorkflow:
                     for test_run in test_runs:
                         total_runs += 1
                         status = test_run.get('status', {}).get('name', 'TODO')
-                        if status == 'PASS':
+                        if status == 'PASSED':
                             passed_runs += 1
-                        elif status == 'FAIL':
+                        elif status == 'FAILED':
                             failed_runs += 1
 
             # Verify we have executed some tests and have mixed results
