@@ -2,6 +2,7 @@
 
 import os
 import json
+import logging
 from typing import Dict, Any, Literal, List, Optional, Union
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -13,8 +14,13 @@ from .schemas.models import StepInput
 from .security import request_validator
 from .config import config
 
+# Setup logger for this module
+logger = logging.getLogger(__name__)
+
 # Load environment variables
+logger.info("Loading environment variables from .env")
 load_dotenv()
+logger.info("Environment variables loaded")
 
 
 def _format_mcp_response(result: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -74,56 +80,66 @@ def create_server() -> FastMCP:
         ValueError: If required environment variables are missing
         Exception: If authentication fails
     """
+    logger.info("=" * 60)
+    logger.info("create_server() called")
+    logger.info("=" * 60)
+
     # Get required environment variables
     client_id = os.getenv('XRAY_CLIENT_ID')
     client_secret = os.getenv('XRAY_CLIENT_SECRET')
     base_url = os.getenv('XRAY_BASE_URL', 'https://xray.cloud.getxray.app')
 
+    logger.info(f"XRAY_CLIENT_ID present: {bool(client_id)}")
+    logger.info(f"XRAY_CLIENT_SECRET present: {bool(client_secret)}")
+    logger.info(f"XRAY_BASE_URL: {base_url}")
+
     if not client_id:
+        logger.error("XRAY_CLIENT_ID environment variable is missing")
         raise ValueError("XRAY_CLIENT_ID environment variable is required")
     if not client_secret:
+        logger.error("XRAY_CLIENT_SECRET environment variable is missing")
         raise ValueError("XRAY_CLIENT_SECRET environment variable is required")
 
     # Create FastMCP server instance
-    mcp = FastMCP(
-        "Xray Test Management",
-        instructions="Create and manage Xray Cloud tests, executions, plans, and runs via unified xray_test tool. Use prompt 'help' to get started, or check resource 'xray://documentation' for comprehensive examples."
-    )
+    logger.info("Creating FastMCP server instance...")
+    try:
+        mcp = FastMCP(
+            "Xray Test Management",
+            instructions="Create and manage Xray Cloud tests, executions, plans, and runs via unified xray_test tool. Use prompt 'help' to get started, or check resource 'xray://documentation' for comprehensive examples."
+        )
+        logger.info("FastMCP server instance created successfully")
+    except Exception as e:
+        logger.error(f"Failed to create FastMCP instance: {e}", exc_info=True)
+        raise
 
     # Initialize authentication and GraphQL client
-    auth = XrayAuth(client_id, client_secret, base_url)
-    client = XrayGraphQLClient(auth)
-    xray_tool = XrayTool(client)
+    logger.info("Initializing authentication...")
+    try:
+        auth = XrayAuth(client_id, client_secret, base_url)
+        logger.info("XrayAuth initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize XrayAuth: {e}", exc_info=True)
+        raise
+
+    logger.info("Initializing GraphQL client...")
+    try:
+        client = XrayGraphQLClient(auth)
+        logger.info("XrayGraphQLClient initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize XrayGraphQLClient: {e}", exc_info=True)
+        raise
+
+    logger.info("Initializing XrayTool...")
+    try:
+        xray_tool = XrayTool(client)
+        logger.info("XrayTool initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize XrayTool: {e}", exc_info=True)
+        raise
 
     # Single tool registration following FastMCP patterns
-    @mcp.tool(description="""
-Unified interface for Xray Cloud test management. Create, retrieve, update, and manage tests, test executions, test plans, and test runs.
-
-**QUICK EXAMPLES:**
-
-1. **Create a Manual test:**
-   entity="test", action="create", project_key="DEMO", summary="Login Test", test_type="Manual"
-
-2. **List tests in project:**
-   entity="test", action="list", project_key="DEMO", limit=20
-
-3. **Create test execution with tests:**
-   entity="test_execution", action="create", project_key="DEMO", summary="Sprint Tests", test_issue_ids=["123", "456"]
-
-4. **Update test run status:**
-   entity="test_run", action="update_status", test_execution_id="500", test_issue_id="123", status="PASS"
-
-5. **Search for tests:**
-   entity="test", action="search", text="login", project_key="DEMO"
-
-**📖 For comprehensive examples and all operations:** Check the MCP resource `xray://documentation`
-**❓ New to this server?** Use the MCP prompt `help` for a getting started guide.
-
-**Available Entities:** test, test_execution, test_plan, test_run
-**Common Actions:** create, get, list, search, update_status, delete, add_tests, remove_tests, add_environments
-
-**⚠️ IMPORTANT:** Use numeric issue IDs (e.g., "1192649") not JIRA keys (e.g., "TEST-123") for issue_id parameters.
-""")
+    logger.info("Registering 'xray_test' tool...")
+    @mcp.tool()
     async def xray_test(
         entity: Literal["test", "test_execution", "test_plan", "test_run"],
         action: str,  # Available actions: create, get, update_status, list, delete, search, add_tests, remove_tests, etc.
@@ -152,40 +168,33 @@ Unified interface for Xray Cloud test management. Create, retrieve, update, and 
         text: Optional[str] = None,
         recent_days: Optional[int] = None
     ) -> Dict[str, Any]:
-        """
-        Unified Xray tool for managing all entities with FastMCP simplicity.
+        """Unified tool for managing Xray Cloud tests, executions, plans, and runs.
+
+        Use 'entity' and 'action' parameters to specify operations.
+        Check the 'help' prompt or xray://documentation resource for detailed examples.
 
         Args:
             entity: Entity type (test, test_execution, test_plan, test_run)
-            action: Action to perform (create, get, update_status, list, delete, etc.)
-            issue_id: Issue ID for specific operations
-            project_key: Jira project key for create/list operations
-            summary: Summary/title for create operations
-            test_type: Test type for test creation (Manual, Generic, Cucumber)
-            test_issue_ids: List of test issue IDs for associations (list of strings, e.g., ["TEST-123", "TEST-456"])
-            test_issue_id: Single test issue ID for test run operations
-            test_exec_issue_ids: List of test execution IDs for plan associations (list of strings, e.g., ["EXEC-123", "EXEC-456"])
-            limit: Maximum results for list operations (max 100)
-            start: Starting index for pagination
-            jql: Custom JQL query for filtering
-            description: Additional description for entities
-            steps: Test steps for Manual tests - can be JSON string or list of step objects. Each step must have 'action', 'data', and 'result' fields.
-                   Example string: '[{"action": "Click login button", "data": "Username: test", "result": "User logged in"}]'
-                   Example list: [{"action": "Click login button", "data": "Username: test", "result": "User logged in"}]
-            gherkin: Gherkin script for Cucumber tests
-            status: Status for test run updates
-            comment: Comment for test run updates
-            test_environments: Test environments for executions (list of strings, e.g., ["staging", "qa", "production"])
-            test_execution_id: Test execution ID for test run operations
-            defects: Defect list for test run operations (list of issue IDs, e.g., ["BUG-123", "BUG-456"])
-            text: Search text for search operations (searches in summary and description)
-            recent_days: Filter for recently updated items (e.g., recent_days=7 for last week)
+            action: Action to perform (create, get, list, search, update_status, delete, etc.)
 
         Returns:
-            Operation result with success status, data, warnings, and errors
+            Operation result with success, data, warnings, and errors
         """
+        logger.info(f"xray_test() called: entity={entity}, action={action}")
+
         # Ensure authentication before executing
-        await auth.authenticate()
+        logger.debug("Authenticating with Xray API...")
+        try:
+            await auth.authenticate()
+            logger.debug("Authentication successful")
+        except Exception as e:
+            logger.error(f"Authentication failed: {e}", exc_info=True)
+            return {
+                'success': False,
+                'data': None,
+                'warnings': [],
+                'errors': [f"Authentication failed: {str(e)}"]
+            }
 
         # Parse and validate steps parameter if provided
         if steps is not None and (isinstance(steps, list) or (isinstance(steps, str) and steps.strip())):
@@ -328,6 +337,29 @@ Unified interface for Xray Cloud test management. Create, retrieve, update, and 
             # For errors, let FastMCP handle the error formatting
             error_message = "Operation failed: " + "; ".join(result.get('errors', ['Unknown error']))
             raise Exception(error_message)
+
+    # Simple test tool for diagnostic purposes (no authentication required)
+    logger.info("Registering 'test_ping' tool for diagnostics...")
+    @mcp.tool()
+    async def test_ping(message: str = "Hello") -> str:
+        """Simple diagnostic tool that echoes back a message. No authentication required.
+
+        This tool exists to help diagnose MCP integration issues. If clients can see and
+        call this tool but not xray_test, the issue is likely with xray_test's complexity
+        or authentication requirements.
+
+        Args:
+            message: Optional message to echo back (default: "Hello")
+
+        Returns:
+            A pong response with the provided message
+        """
+        logger.info(f"test_ping() called with message='{message}'")
+        response = f"Pong! You said: {message}"
+        logger.info(f"test_ping() returning: {response}")
+        return response
+
+    logger.info("test_ping tool registered successfully")
 
     # Add resources for read-only data access
     @mcp.resource("xray://documentation")
@@ -1097,6 +1129,41 @@ Happy testing! 🚀
             prompt += "```\n"
 
         return prompt
+
+    # Log final server state before returning
+    logger.info("=" * 60)
+    logger.info("Server configuration complete!")
+    logger.info(f"Server name: {mcp.name}")
+
+    # Log registered tools
+    if hasattr(mcp, '_tool_manager') and hasattr(mcp._tool_manager, '_tools'):
+        tools = mcp._tool_manager._tools
+        logger.info(f"Total tools registered: {len(tools)}")
+        for tool_name, tool_obj in tools.items():
+            logger.info(f"  ✓ Tool: {tool_name}")
+    else:
+        logger.warning("Could not access tool manager to list tools")
+
+    # Log registered resources
+    if hasattr(mcp, '_resource_manager') and hasattr(mcp._resource_manager, '_resources'):
+        resources = mcp._resource_manager._resources
+        logger.info(f"Total resources registered: {len(resources)}")
+        for resource_uri in resources.keys():
+            logger.info(f"  ✓ Resource: {resource_uri}")
+    else:
+        logger.warning("Could not access resource manager to list resources")
+
+    # Log registered prompts
+    if hasattr(mcp, '_prompt_manager') and hasattr(mcp._prompt_manager, '_prompts'):
+        prompts = mcp._prompt_manager._prompts
+        logger.info(f"Total prompts registered: {len(prompts)}")
+        for prompt_name in prompts.keys():
+            logger.info(f"  ✓ Prompt: {prompt_name}")
+    else:
+        logger.warning("Could not access prompt manager to list prompts")
+
+    logger.info("=" * 60)
+    logger.info("Returning configured server to caller")
 
     return mcp
 

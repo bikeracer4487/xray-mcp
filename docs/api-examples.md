@@ -31,7 +31,7 @@
 }
 ```
 
-**📖 For complete details, see [ID_FORMAT_REQUIREMENTS.md](./ID_FORMAT_REQUIREMENTS.md)**
+**📖 For complete details, see [ID Format Requirements](./id-format-requirements.md)**
 
 ---
 
