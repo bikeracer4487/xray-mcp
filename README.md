@@ -16,38 +16,98 @@ This MCP server enables AI assistants (Claude, Cursor, etc.) and other MCP clien
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher (3.12 recommended)
 - Xray Cloud account with API access
 - Xray Client ID and Client Secret ([Get credentials](https://docs.getxray.app/display/XRAYCLOUD/Authentication+-+REST+v2))
 
-### Installation
+### ⚡ Automated Installation (Recommended)
+
+The fastest way to get started is using the automated installation script:
 
 ```bash
 # Clone repository
 git clone <repository-url>
 cd xray-mcp
 
+# Run automated installation
+./install-server.sh
+```
+
+**What the script does:**
+- ✅ Detects and configures Python environment (cross-platform: macOS, Linux, WSL)
+- ✅ Creates isolated virtual environment
+- ✅ Installs all dependencies automatically
+- ✅ Prompts for Xray API credentials (interactive setup)
+- ✅ Configures Claude Desktop and Cursor IDE integration
+- ✅ Validates the complete setup
+
+After installation, restart Claude Desktop or Cursor IDE and the Xray MCP server will be available!
+
+**Script Options:**
+- `./install-server.sh` - Full automated setup
+- `./install-server.sh --help` - Show all available options
+- `./install-server.sh --config` - Display configuration instructions only
+- `./install-server.sh --clear-cache` - Clear Python cache (fixes import issues)
+
+### 🛠️ Manual Installation (Alternative)
+
+If you prefer manual setup or the script doesn't work for your environment:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd xray-mcp
+
+# Create virtual environment
+python3 -m venv .xray-mcp_venv
+source .xray-mcp_venv/bin/activate  # On Windows: .xray-mcp_venv\Scripts\activate
+
 # Install dependencies
 pip install -r requirements.txt
 
 # Configure credentials
 cp .env.example .env
-# Edit .env and add your Xray credentials
+# Edit .env and add your Xray credentials:
+# XRAY_CLIENT_ID=your_client_id_here
+# XRAY_CLIENT_SECRET=your_client_secret_here
 ```
 
-### Configuration
+**Manual IDE Configuration:**
 
-Edit `.env` file:
+For Claude Desktop, add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
-```bash
-XRAY_CLIENT_ID=your_client_id_here
-XRAY_CLIENT_SECRET=your_client_secret_here
+```json
+{
+  "mcpServers": {
+    "xray": {
+      "command": "/absolute/path/to/.xray-mcp_venv/bin/python",
+      "args": ["/absolute/path/to/main.py"]
+    }
+  }
+}
 ```
 
-### Start Server
+For Cursor IDE, add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "xray": {
+      "command": "/absolute/path/to/.xray-mcp_venv/bin/python",
+      "args": ["/absolute/path/to/main.py"]
+    }
+  }
+}
+```
+
+### Testing the Installation
 
 ```bash
-python -m src.server
+# Direct execution
+python main.py
+
+# Or using FastMCP CLI
+fastmcp run main.py:create_mcp
 ```
 
 ## Usage
@@ -287,7 +347,15 @@ All operations return standardized JSON:
 
 ## Requirements
 
-Key dependencies (see `requirements.txt` for complete list):
+### System Requirements
+
+- Python 3.10+ (3.12 recommended for best compatibility)
+- macOS, Linux, or Windows (WSL supported)
+- Internet connection for Xray Cloud API access
+
+### Key Dependencies
+
+See `requirements.txt` for complete list:
 
 - `fastmcp` - MCP server framework
 - `aiohttp` - Async HTTP client
@@ -295,17 +363,130 @@ Key dependencies (see `requirements.txt` for complete list):
 - `python-dotenv` - Environment management
 - `pytest` - Testing framework
 
+## Environment Variables
+
+The server is configured via environment variables in `.env`:
+
+**Required:**
+```bash
+XRAY_CLIENT_ID=your_client_id_here
+XRAY_CLIENT_SECRET=your_client_secret_here
+```
+
+**Optional:**
+```bash
+XRAY_BASE_URL=https://xray.cloud.getxray.app          # Xray Cloud URL (default shown)
+XRAY_GRAPHQL_URL=https://xray.cloud.getxray.app/api/v2/graphql  # GraphQL endpoint
+MCP_SERVER_NAME=xray-mcp                              # Server name (default: xray-mcp)
+MCP_SERVER_VERSION=2.0.0                              # Server version
+MCP_LOG_LEVEL=INFO                                    # Logging level (DEBUG|INFO|WARNING|ERROR)
+DEFAULT_PROJECT_KEY=YOUR_PROJECT                      # Default Jira project key
+```
+
+The `install-server.sh` script automatically creates the `.env` file and prompts for required credentials.
+
 ## Contributing
+
+We welcome contributions! Here's how to get started:
+
+### Development Setup
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd xray-mcp
+./install-server.sh
+
+# Activate virtual environment
+source .xray-mcp_venv/bin/activate
+
+# Install development dependencies (if any)
+pip install -r requirements.txt
+```
+
+### Development Workflow
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests (`pytest`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+4. Run tests to verify (`pytest` or `pytest tests/integration/`)
+5. Update documentation if needed
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
-See [CLAUDE.md](CLAUDE.md) for development guidelines.
+### Development Guidelines
+
+See [CLAUDE.md](CLAUDE.md) for comprehensive development guidelines including:
+- Project architecture and structure
+- Testing practices
+- Code style conventions
+- Environment setup details
+
+## Troubleshooting
+
+### Installation Issues
+
+**Python version too old:**
+```bash
+# The server requires Python 3.10+
+python3 --version
+
+# Install Python 3.12 (recommended):
+# macOS: brew install python@3.12
+# Ubuntu/Debian: sudo apt install python3.12 python3.12-venv
+```
+
+**Virtual environment creation fails:**
+```bash
+# Install venv module (Ubuntu/Debian)
+sudo apt install python3-venv
+
+# Or recreate the virtual environment
+rm -rf .xray-mcp_venv
+./install-server.sh
+```
+
+**Import errors or module not found:**
+```bash
+# Clear Python cache and reinstall
+./install-server.sh --clear-cache
+```
+
+### Runtime Issues
+
+**"Authentication failed" errors:**
+- Verify your `XRAY_CLIENT_ID` and `XRAY_CLIENT_SECRET` in `.env`
+- Ensure credentials are valid in your Xray Cloud instance
+- Check that you're using the correct Xray Cloud URL
+
+**"Failed to retrieve entity" errors:**
+- Verify you're using **numeric issue IDs** (not JIRA keys) - see [ID Format Requirements](docs/id-format-requirements.md)
+- Check that the entity exists in your Xray instance
+- Ensure your API credentials have appropriate permissions
+
+**MCP server not appearing in Claude Desktop/Cursor:**
+- Verify the configuration file exists and has correct paths
+- Restart the IDE completely (not just reload)
+- Check the configuration file syntax (must be valid JSON)
+- Run `./install-server.sh --config` to see correct configuration
+
+**Indexing delay issues:**
+- Newly created entities may take 1-2 seconds to appear in search results (Xray Cloud limitation)
+- The server includes automatic retry logic to handle this
+- See [Advanced Retry Strategies](docs/advanced-retry-strategies.md) for details
+
+### Getting Help
+
+If you encounter issues:
+1. Check [Project Status](docs/status.md) for known limitations
+2. Review [ID Format Requirements](docs/id-format-requirements.md) if you get ID-related errors
+3. Check the server logs: `xray_mcp_server.log` in the project directory
+4. Create an issue with:
+   - Your OS and Python version
+   - Complete error message
+   - Steps to reproduce
+   - Relevant log excerpts
 
 ## Support
 
