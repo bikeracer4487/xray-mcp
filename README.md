@@ -26,7 +26,7 @@ The fastest way to get started is using the automated installation script:
 
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/bikeracer4487/xray-mcp.git
 cd xray-mcp
 
 # Run automated installation
