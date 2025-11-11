@@ -141,3 +141,6 @@ tests/TEST_SUMMARY.md
 
 # Node Modules
 node_modules
+
+# Claude IDE state files
+.claude/.tabstate

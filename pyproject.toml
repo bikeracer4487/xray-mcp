@@ -1,0 +1,23 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "performance: marks tests as performance tests",
+    "integration: marks tests as integration tests",
+    "edge_case: marks tests as edge case tests",
+    "error_handling: marks tests as error handling tests",
+    "multilingual: marks tests as multilingual tests",
+    "workflow: marks tests as workflow tests",
+    "mcp_protocol: marks tests as MCP protocol tests",
+    "mcp_client: marks tests using FastMCP Client",
+    "mcp_subprocess: marks tests using subprocess communication",
+    "mcp_compliance: marks tests for MCP specification compliance",
+    "jsonrpc: marks tests for JSON-RPC protocol compliance",
+    "mcp_integration: marks tests as MCP integration tests"
+]

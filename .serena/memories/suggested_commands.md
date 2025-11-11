@@ -1,95 +1,89 @@
-# Suggested Development Commands
+# Suggested Commands for Xray MCP Server Development
 
-## Essential Commands for macOS (Darwin)
-
-### Setup and Installation
+## Environment Setup Commands
 ```bash
-# Install dependencies
+# Run the comprehensive setup script (cross-platform)
+./install-server.sh
+
+# Manually activate virtual environment (after install-server.sh)
+source venv/bin/activate
+
+# Install dependencies manually
 pip install -r requirements.txt
 
-# Set up environment (copy and edit with your credentials)
+# Configure environment variables
 cp .env.example .env
-# Edit .env with your XRAY_CLIENT_ID and XRAY_CLIENT_SECRET
+# Then edit .env with your Xray credentials
 ```
 
-### Running the Server
-```bash
-# Direct execution (primary method)
-python main.py
-
-# Using FastMCP CLI (alternative)
-fastmcp run main.py:mcp
-
-# Test the server functionality
-python example.py
-
-# Install for MCP client integration
-./install-server.sh
-```
-
-### Testing Commands
+## Testing Commands
 ```bash
 # Run all tests
-python test_server.py
-
-# Run with pytest (more detailed)
 pytest
 
-# Run with coverage reporting
-pytest --cov=. --cov-report=html
+# Run integration tests (requires Xray credentials in .env)
+pytest tests/integration/
 
-# Run specific test categories
-pytest -m unit
-pytest -m integration  
-pytest -m security
-pytest -m slow
+# Run specific test file
+pytest tests/integration/test_auth_integration.py
 
-# Run specific test files
-pytest tests/test_auth_race_condition.py -v
-pytest tests/test_error_handling.py -v
+# Run tests with verbose output
+pytest -v
+
+# Run tests with specific markers (if added)
+pytest -m integration
 ```
 
-### Code Quality Commands  
+## Documentation Commands
 ```bash
-# Format code (required before commits)
-black .
-isort .
-
-# Lint code
-flake8 .
-
-# Type checking
-mypy .
-
-# Run all quality checks together
-black . && isort . && flake8 . && mypy .
+# Update Xray API documentation (from xray-docs/)
+cd xray-docs/
+python3 download_xray_docs_v2.py
 ```
 
-### Development Utilities
+## Darwin System Utilities
 ```bash
-# Check git status
-git status
+# File operations
+ls -la                    # List files with details
+find . -name "*.py"      # Find Python files
+grep -r "pattern" src/   # Search in source code
+cat filename.py          # Display file contents
 
-# List project structure
-ls -la
-find . -name "*.py" | head -20
-
-# Search for patterns in code  
-grep -r "pattern" --include="*.py" .
-
-# Find files by name
-find . -name "*test*.py"
+# Git operations
+git status               # Check repository status
+git add .               # Stage all changes
+git commit -m "message" # Commit changes
+git push origin branch  # Push to remote
+git log --oneline       # View commit history
 ```
 
-### Environment Testing
+## Development Workflow Commands
 ```bash
-# Test API connection
-python -c "from main import create_server_from_env; import asyncio; asyncio.run(create_server_from_env().utils_tools.validate_connection())"
+# 1. Setup environment
+./install-server.sh
+source venv/bin/activate
+
+# 2. Make changes to code
+# 3. Run tests
+pytest
+
+# 4. Run integration tests (optional, requires credentials)
+pytest tests/integration/
+
+# 5. Commit changes
+git add .
+git commit -m "descriptive message"
 ```
 
-## Darwin-Specific Notes
-- Use standard Unix commands (ls, grep, find, cd)
-- Python typically available as `python3` and `python`
-- File paths use forward slashes
-- Case-sensitive filesystem
-- Use `./script.sh` for shell script execution
+## Environment Variables Required
+```bash
+XRAY_CLIENT_ID=your_xray_client_id_here
+XRAY_CLIENT_SECRET=your_xray_client_secret_here
+XRAY_BASE_URL=https://xray.cloud.getxray.app  # Optional, defaults to cloud
+```
+
+## Project-Specific Notes
+- No linting/formatting tools configured yet (pyproject.toml is minimal)
+- Virtual environment is named `.xray-mcp_venv` by the install script
+- Integration tests require real Xray API credentials
+- Darwin system commands work on macOS (which this project is developed on)
